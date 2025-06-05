@@ -6,6 +6,8 @@ MuonAODAnalyzer = cms.EDAnalyzer('MuonAODAnalyzer',
     Vertices=cms.InputTag("offlinePrimaryVertices"),
     Triggers = cms.InputTag("TriggerResults::HLT"),
     l1GtSrc = cms.InputTag("gtStage2Digis"),
+    DispMuons=cms.InputTag("displacedMuons"),
+    CosmicMuons=cms.InputTag("muonsFromCosmics")
 
     MuonPtCut=cms.double(0),
     IsMC=cms.bool(False),
