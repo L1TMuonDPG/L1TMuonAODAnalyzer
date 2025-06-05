@@ -345,8 +345,8 @@ void MuonAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       cosmicMuon_dz.push_back( (&*muon)->innerTrack()->dz(PV));
     }
     else if(!((&*muon)->outerTrack()).isNull()){
-      cosmiMuon_dxy.push_back( (&*muon)->outerTrack()->dxy(PV));
-      cosmiMuon_dz.push_back( (&*muon)->outerTrack()->dz(PV));
+      cosmicMuon_dxy.push_back( (&*muon)->outerTrack()->dxy(PV));
+      cosmicMuon_dz.push_back( (&*muon)->outerTrack()->dz(PV));
     }
     else{
       cosmicMuon_dxy.push_back(-999.);
