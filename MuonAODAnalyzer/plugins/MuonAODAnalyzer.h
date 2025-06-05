@@ -98,6 +98,8 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 
     // ----------member data ---------------------------
     edm::EDGetTokenT<std::vector< reco::Muon> > muonToken_;
+    edm::EDGetTokenT<std::vector< reco::Muon> > dispMuonToken_;
+    edm::EDGetTokenT<std::vector< reco::Muon> > CosmicMuonToken_;
     edm::EDGetTokenT<l1t::MuonBxCollection>l1MuonToken_;
     edm::EDGetTokenT<BXVector<l1t::RegionalMuonCand>> l1BMTFRegionalMuonCandToken_;
     edm::EDGetTokenT<std::vector<Vertex> > verticesToken_;
@@ -177,6 +179,86 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     vector<int> muon_nMatchedRPCLayers;
     vector<unsigned int> muon_RPClayerMask;
     int muon_size;
+
+    //Displaced Muons
+    vector<Float_t>  dispMuon_eta;
+    vector<Float_t>  dispMuon_etaAtSt1;
+    vector<Float_t>  dispMuon_etaAtSt2;
+    vector<Float_t>  dispMuon_phi;
+    vector<Float_t>  dispMuon_phiAtSt1;
+    vector<Float_t>  dispMuon_phiAtSt2;
+    vector<Float_t>  dispMuon_pt;
+    vector<Float_t>  dispMuon_ptCorr;
+    vector <int>     dispMuon_charge;
+    vector<Float_t>  dispMuon_dz;
+    vector<Float_t>  dispMuon_dzError;
+    vector<Float_t>  dispMuon_dxy;
+    vector<Float_t>  dispMuon_dxyError;
+    vector<Float_t>  dispMuon_3dIP;
+    vector<Float_t>  dispMuon_3dIPError;
+    vector<Bool_t>  dispMuon_PassTightID;
+    vector<Bool_t>  dispMuon_PassLooseID;
+    vector<Bool_t> dispMuon_isSAMuon;
+    vector<Bool_t> dispMuon_isGlobalMuon;
+    vector<Bool_t> dispMuon_isTrackerMuon;
+    vector<Bool_t> dispMuon_isPFMuon;
+
+    vector<Float_t> dispMuon_vx;
+    vector<Float_t> dispMuon_vy;
+    vector<Float_t> dispMuon_vz;
+    vector<Float_t> dispMuon_px;
+    vector<Float_t> dispMuon_py;
+    vector<Float_t> dispMuon_pz;
+
+    vector<int> dispMuon_nChambers;
+    vector<int> dispMuon_nChambersCSCorDT;
+    vector<int> dispMuon_nMatches;
+    vector<int> dispMuon_nMatchedStations;
+    vector<unsigned int> dispMuon_expectedNumberOfMatchedStations;
+    vector<unsigned int> dispMuon_stationMask;
+    vector<int> dispMuon_nMatchedRPCLayers;
+    vector<unsigned int> dispMuon_RPClayerMask;
+    int dispMuon_size;
+
+    //Muons
+    vector<Float_t>  cosmicMuon_eta;
+    vector<Float_t>  cosmicMuon_etaAtSt1;
+    vector<Float_t>  cosmicMuon_etaAtSt2;
+    vector<Float_t>  cosmicMuon_phi;
+    vector<Float_t>  cosmicMuon_phiAtSt1;
+    vector<Float_t>  cosmicMuon_phiAtSt2;
+    vector<Float_t>  cosmicMuon_pt;
+    vector<Float_t>  cosmicMuon_ptCorr;
+    vector <int>     cosmicMuon_charge;
+    vector<Float_t>  cosmicMuon_dz;
+    vector<Float_t>  cosmicMuon_dzError;
+    vector<Float_t>  cosmicMuon_dxy;
+    vector<Float_t>  cosmicMuon_dxyError;
+    vector<Float_t>  cosmicMuon_3dIP;
+    vector<Float_t>  cosmicMuon_3dIPError;
+    vector<Bool_t>  cosmicMuon_PassTightID;
+    vector<Bool_t>  cosmicMuon_PassLooseID;
+    vector<Bool_t> cosmicMuon_isSAMuon;
+    vector<Bool_t> cosmicMuon_isGlobalMuon;
+    vector<Bool_t> cosmicMuon_isTrackerMuon;
+    vector<Bool_t> cosmicMuon_isPFMuon;
+
+    vector<Float_t> cosmicMuon_vx;
+    vector<Float_t> cosmicMuon_vy;
+    vector<Float_t> cosmicMuon_vz;
+    vector<Float_t> cosmicMuon_px;
+    vector<Float_t> cosmicMuon_py;
+    vector<Float_t> cosmicMuon_pz;
+
+    vector<int> cosmicMuon_nChambers;
+    vector<int> cosmicMuon_nChambersCSCorDT;
+    vector<int> cosmicMuon_nMatches;
+    vector<int> cosmicMuon_nMatchedStations;
+    vector<unsigned int> cosmicMuon_expectedNumberOfMatchedStations;
+    vector<unsigned int> cosmicMuon_stationMask;
+    vector<int> cosmicMuon_nMatchedRPCLayers;
+    vector<unsigned int> cosmicMuon_RPClayerMask;
+    int cosmicMuon_size;
 
     //L1 muon
     vector <int> l1mu_qual;
