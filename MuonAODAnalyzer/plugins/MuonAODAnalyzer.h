@@ -98,14 +98,15 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 
     // ----------member data ---------------------------
     edm::EDGetTokenT<std::vector< reco::Muon> > muonToken_;
-    edm::EDGetTokenT<std::vector< reco::Muon> > dispMuonToken_;
-    edm::EDGetTokenT<std::vector< reco::Muon> > CosmicMuonToken_;
     edm::EDGetTokenT<l1t::MuonBxCollection>l1MuonToken_;
     edm::EDGetTokenT<BXVector<l1t::RegionalMuonCand>> l1BMTFRegionalMuonCandToken_;
     edm::EDGetTokenT<std::vector<Vertex> > verticesToken_;
     edm::EDGetTokenT<edm::TriggerResults> trgresultsToken_;
     edm::EDGetTokenT<GlobalExtBlkBxCollection> UnprefirableEventToken_;
     edm::EDGetTokenT<BXVector<GlobalAlgBlk>> l1GtToken_;
+
+    edm::EDGetTokenT<std::vector< reco::Muon> > dispMuonToken_;
+    edm::EDGetTokenT<std::vector< reco::Muon> > CosmicMuonToken_;
 
     Float_t MuonPtCut_;
     Bool_t SaveTree_, IsMC_, Debug_;
