@@ -34,6 +34,7 @@ MuonAODAnalyzer::MuonAODAnalyzer(const edm::ParameterSet& iConfig)
 
     dispMuonToken_(consumes< std::vector< reco::Muon> >(iConfig.getParameter<edm::InputTag>("DispMuons"))),
     CosmicMuonToken_(consumes< std::vector< reco::Muon> >(iConfig.getParameter<edm::InputTag>("CosmicMuons"))),
+    CosmicMuon1LegToken_(consumes< std::vector< reco::Muon> >(iConfig.getParameter<edm::InputTag>("CosmicMuons1Leg"))),
 
     MuonPtCut_(iConfig.getParameter<double>("MuonPtCut")),
     SaveTree_(iConfig.getParameter<bool>("SaveTree")),
@@ -200,14 +201,17 @@ void MuonAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     if( !((&*muon)->innerTrack()).isNull()){
       muon_dxy.push_back( (&*muon)->innerTrack()->dxy(PV));
       muon_dz.push_back( (&*muon)->innerTrack()->dz(PV));
+      muon_hasInnerTrack.push_back(true);
     }
     else if(!((&*muon)->outerTrack()).isNull()){
       muon_dxy.push_back( (&*muon)->outerTrack()->dxy(PV));
       muon_dz.push_back( (&*muon)->outerTrack()->dz(PV));
+      muon_hasInnerTrack.push_back(false);
     }
     else{
       muon_dxy.push_back(-999.);
       muon_dz.push_back(-999.);
+      muon_hasInnerTrack.push_back(false);
     }
 
     // extrapolation of muon track coordinates
@@ -271,14 +275,17 @@ void MuonAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     if( !((&*muon)->innerTrack()).isNull()){
       dispMuon_dxy.push_back( (&*muon)->innerTrack()->dxy(PV));
       dispMuon_dz.push_back( (&*muon)->innerTrack()->dz(PV));
+      dispMuon_hasInnerTrack.push_back(true);
     }
     else if(!((&*muon)->outerTrack()).isNull()){
       dispMuon_dxy.push_back( (&*muon)->outerTrack()->dxy(PV));
       dispMuon_dz.push_back( (&*muon)->outerTrack()->dz(PV));
+      dispMuon_hasInnerTrack.push_back(false);
     }
     else{
       dispMuon_dxy.push_back(-999.);
       dispMuon_dz.push_back(-999.);
+      dispMuon_hasInnerTrack.push_back(false);
     }
 
     // extrapolation of muon track coordinates
@@ -343,14 +350,17 @@ void MuonAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     if( !((&*muon)->innerTrack()).isNull()){
       cosmicMuon_dxy.push_back( (&*muon)->innerTrack()->dxy(PV));
       cosmicMuon_dz.push_back( (&*muon)->innerTrack()->dz(PV));
+      cosmicMuon_hasInnerTrack.push_back(true);
     }
     else if(!((&*muon)->outerTrack()).isNull()){
       cosmicMuon_dxy.push_back( (&*muon)->outerTrack()->dxy(PV));
       cosmicMuon_dz.push_back( (&*muon)->outerTrack()->dz(PV));
+      cosmicMuon_hasInnerTrack.push_back(false);
     }
     else{
       cosmicMuon_dxy.push_back(-999.);
       cosmicMuon_dz.push_back(-999.);
+      cosmicMuon_hasInnerTrack.push_back(false);
     }
 
     // extrapolation of muon track coordinates
@@ -370,6 +380,80 @@ void MuonAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     } else {
         cosmicMuon_etaAtSt2.push_back(-999);
         cosmicMuon_phiAtSt2.push_back(-999);
+    }
+  }
+
+  // Cosmic muons 1 Leg
+  edm::Handle< std::vector<reco::Muon> > theCosmicMuons1Leg;
+  iEvent.getByToken(CosmicMuon1LegToken_,theCosmicMuons1Leg);
+  for( std::vector<reco::Muon>::const_iterator muon = (*theCosmicMuons1Leg).begin(); muon != (*theCosmicMuons1Leg).end(); muon++ ) {
+    if((&*muon)->pt() <0) continue; //Loose cut  on uncorrected pt 
+
+    double ptmuoncorr= (&*muon)->pt();
+
+    // store all reco muons for now
+    cosmicMuon1Leg_size++;
+    cosmicMuon1Leg_eta.push_back((&*muon)->eta());
+    cosmicMuon1Leg_phi.push_back((&*muon)->phi());
+    cosmicMuon1Leg_pt.push_back((&*muon)->pt());
+    cosmicMuon1Leg_ptCorr.push_back( ptmuoncorr );
+    cosmicMuon1Leg_charge.push_back((&*muon)->charge());
+    cosmicMuon1Leg_PassTightID.push_back(  (&*muon)->passed(reco::Muon::CutBasedIdMediumPrompt )&& (&*muon)->passed(reco::Muon::PFIsoTight ) );
+    cosmicMuon1Leg_PassLooseID.push_back(  (&*muon)->passed(reco::Muon::CutBasedIdLoose )&& (&*muon)->passed(reco::Muon::PFIsoLoose ) );
+    cosmicMuon1Leg_isSAMuon.push_back( (&*muon)->isStandAloneMuon());
+    cosmicMuon1Leg_isTrackerMuon.push_back( (&*muon)->isTrackerMuon());
+    cosmicMuon1Leg_isGlobalMuon.push_back( (&*muon)->isGlobalMuon());
+    cosmicMuon1Leg_isPFMuon.push_back( (&*muon)->isPFMuon());
+
+    cosmicMuon1Leg_vx.push_back( (&*muon)->vx() );
+    cosmicMuon1Leg_vy.push_back( (&*muon)->vy() );
+    cosmicMuon1Leg_vz.push_back( (&*muon)->vz() );
+    cosmicMuon1Leg_px.push_back( (&*muon)->px() );
+    cosmicMuon1Leg_py.push_back( (&*muon)->py() );
+    cosmicMuon1Leg_pz.push_back( (&*muon)->pz() );
+
+    cosmicMuon1Leg_nChambers.push_back( (&*muon)->numberOfChambers() );
+    cosmicMuon1Leg_nChambersCSCorDT.push_back((&*muon)->numberOfChambersCSCorDT() );
+    cosmicMuon1Leg_nMatches.push_back( (&*muon)->numberOfMatches() );
+    cosmicMuon1Leg_nMatchedStations.push_back( (&*muon)->numberOfMatchedStations() );
+    cosmicMuon1Leg_expectedNumberOfMatchedStations.push_back( (&*muon)->expectedNnumberOfMatchedStations() );
+    cosmicMuon1Leg_stationMask.push_back( (&*muon)->stationMask() );
+    cosmicMuon1Leg_nMatchedRPCLayers.push_back( (&*muon)->numberOfMatchedRPCLayers() );
+    cosmicMuon1Leg_RPClayerMask.push_back( (&*muon)->RPClayerMask() );
+    
+    if( !((&*muon)->innerTrack()).isNull()){
+      cosmicMuon1Leg_dxy.push_back( (&*muon)->innerTrack()->dxy(PV));
+      cosmicMuon1Leg_dz.push_back( (&*muon)->innerTrack()->dz(PV));
+      cosmicMuon1Leg_hasInnerTrack.push_back(true);
+    }
+    else if(!((&*muon)->outerTrack()).isNull()){
+      cosmicMuon1Leg_dxy.push_back( (&*muon)->outerTrack()->dxy(PV));
+      cosmicMuon1Leg_dz.push_back( (&*muon)->outerTrack()->dz(PV));
+      cosmicMuon1Leg_hasInnerTrack.push_back(false);
+    }
+    else{
+      cosmicMuon1Leg_dxy.push_back(-999.);
+      cosmicMuon1Leg_dz.push_back(-999.);
+      cosmicMuon1Leg_hasInnerTrack.push_back(false);
+    }
+
+    // extrapolation of muon track coordinates
+    TrajectoryStateOnSurface stateAtMuSt1 = muPropagator1st_.extrapolate(*muon);
+    if (stateAtMuSt1.isValid()) {
+        cosmicMuon1Leg_etaAtSt1.push_back(stateAtMuSt1.globalPosition().eta());
+        cosmicMuon1Leg_phiAtSt1.push_back(stateAtMuSt1.globalPosition().phi());
+    } else {
+        cosmicMuon1Leg_etaAtSt1.push_back(-999);
+        cosmicMuon1Leg_phiAtSt1.push_back(-999);
+    }
+
+    TrajectoryStateOnSurface stateAtMuSt2 = muPropagator2nd_.extrapolate(*muon);
+    if (stateAtMuSt2.isValid()) {
+        cosmicMuon1Leg_etaAtSt2.push_back(stateAtMuSt2.globalPosition().eta());
+        cosmicMuon1Leg_phiAtSt2.push_back(stateAtMuSt2.globalPosition().phi());
+    } else {
+        cosmicMuon1Leg_etaAtSt2.push_back(-999);
+        cosmicMuon1Leg_phiAtSt2.push_back(-999);
     }
   }
 
@@ -407,6 +491,7 @@ void MuonAODAnalyzer::beginJob() {
   outputTree->Branch("muon_isTrackerMuon",&muon_isTrackerMuon);
   outputTree->Branch("muon_isGlobalMuon",&muon_isGlobalMuon);
   outputTree->Branch("muon_isPFMuon",&muon_isPFMuon);
+  outputTree->Branch("muon_hasInnerTrack",&muon_hasInnerTrack);
 
   outputTree->Branch("muon_vx",&muon_vx);
   outputTree->Branch("muon_vy",&muon_vy);
@@ -447,6 +532,7 @@ void MuonAODAnalyzer::beginJob() {
   outputTree->Branch("dispMuon_isTrackerMuon",&dispMuon_isTrackerMuon);
   outputTree->Branch("dispMuon_isGlobalMuon",&dispMuon_isGlobalMuon);
   outputTree->Branch("dispMuon_isPFMuon",&dispMuon_isPFMuon);
+  outputTree->Branch("dispMuon_hasInnerTrack",&dispMuon_hasInnerTrack);
 
   outputTree->Branch("dispMuon_vx",&dispMuon_vx);
   outputTree->Branch("dispMuon_vy",&dispMuon_vy);
@@ -488,6 +574,7 @@ void MuonAODAnalyzer::beginJob() {
   outputTree->Branch("cosmicMuon_isTrackerMuon",&cosmicMuon_isTrackerMuon);
   outputTree->Branch("cosmicMuon_isGlobalMuon",&cosmicMuon_isGlobalMuon);
   outputTree->Branch("cosmicMuon_isPFMuon",&cosmicMuon_isPFMuon);
+  outputTree->Branch("cosmicMuon_hasInnerTrack",&cosmicMuon_hasInnerTrack);
 
   outputTree->Branch("cosmicMuon_vx",&cosmicMuon_vx);
   outputTree->Branch("cosmicMuon_vy",&cosmicMuon_vy);
@@ -506,6 +593,48 @@ void MuonAODAnalyzer::beginJob() {
   outputTree->Branch("cosmicMuon_RPClayerMask",&cosmicMuon_RPClayerMask);
 
   outputTree->Branch("cosmicMuon_size", &cosmicMuon_size, "cosmicMuon_size/I");
+
+
+  outputTree->Branch("cosmicMuon1Leg_eta",&cosmicMuon1Leg_eta);
+  outputTree->Branch("cosmicMuon1Leg_etaAtSt1",&cosmicMuon1Leg_etaAtSt1);
+  outputTree->Branch("cosmicMuon1Leg_etaAtSt2",&cosmicMuon1Leg_etaAtSt2);
+  outputTree->Branch("cosmicMuon1Leg_phi",&cosmicMuon1Leg_phi);
+  outputTree->Branch("cosmicMuon1Leg_phiAtSt1",&cosmicMuon1Leg_phiAtSt1);
+  outputTree->Branch("cosmicMuon1Leg_phiAtSt2",&cosmicMuon1Leg_phiAtSt2);
+  outputTree->Branch("cosmicMuon1Leg_pt",&cosmicMuon1Leg_pt);
+  outputTree->Branch("cosmicMuon1Leg_ptCorr",&cosmicMuon1Leg_ptCorr);
+  outputTree->Branch("cosmicMuon1Leg_charge",&cosmicMuon1Leg_charge);
+  outputTree->Branch("cosmicMuon1Leg_dz",&cosmicMuon1Leg_dz);
+  outputTree->Branch("cosmicMuon1Leg_dzError",&cosmicMuon1Leg_dzError);
+  outputTree->Branch("cosmicMuon1Leg_dxy",&cosmicMuon1Leg_dxy);
+  outputTree->Branch("cosmicMuon1Leg_dxyError",&cosmicMuon1Leg_dxyError);
+  outputTree->Branch("cosmicMuon1Leg_3dIP",&cosmicMuon1Leg_3dIP);
+  outputTree->Branch("cosmicMuon1Leg_3dIPError",&cosmicMuon1Leg_3dIPError);
+  outputTree->Branch("cosmicMuon1Leg_PassTightID",&cosmicMuon1Leg_PassTightID);
+  outputTree->Branch("cosmicMuon1Leg_PassLooseID",&cosmicMuon1Leg_PassLooseID);
+  outputTree->Branch("cosmicMuon1Leg_isSAMuon",&cosmicMuon1Leg_isSAMuon);
+  outputTree->Branch("cosmicMuon1Leg_isTrackerMuon",&cosmicMuon1Leg_isTrackerMuon);
+  outputTree->Branch("cosmicMuon1Leg_isGlobalMuon",&cosmicMuon1Leg_isGlobalMuon);
+  outputTree->Branch("cosmicMuon1Leg_isPFMuon",&cosmicMuon1Leg_isPFMuon);
+  outputTree->Branch("cosmicMuon1Leg_hasInnerTrack",&cosmicMuon1Leg_hasInnerTrack);
+
+  outputTree->Branch("cosmicMuon1Leg_vx",&cosmicMuon1Leg_vx);
+  outputTree->Branch("cosmicMuon1Leg_vy",&cosmicMuon1Leg_vy);
+  outputTree->Branch("cosmicMuon1Leg_vz",&cosmicMuon1Leg_vz);
+  outputTree->Branch("cosmicMuon1Leg_px",&cosmicMuon1Leg_px);
+  outputTree->Branch("cosmicMuon1Leg_py",&cosmicMuon1Leg_py);
+  outputTree->Branch("cosmicMuon1Leg_pz",&cosmicMuon1Leg_pz);
+
+  outputTree->Branch("cosmicMuon1Leg_nChambers",&cosmicMuon1Leg_nChambers);
+  outputTree->Branch("cosmicMuon1Leg_nChambersCSCorDT",&cosmicMuon1Leg_nChambersCSCorDT);
+  outputTree->Branch("cosmicMuon1Leg_nMatches",&cosmicMuon1Leg_nMatches);
+  outputTree->Branch("cosmicMuon1Leg_nMatchedStations",&cosmicMuon1Leg_nMatchedStations);
+  outputTree->Branch("cosmicMuon1Leg_expectedNumberOfMatchedStations",&cosmicMuon1Leg_expectedNumberOfMatchedStations);
+  outputTree->Branch("cosmicMuon1Leg_stationMask",&cosmicMuon1Leg_stationMask);
+  outputTree->Branch("cosmicMuon1Leg_nMatchedRPCLayers",&cosmicMuon1Leg_nMatchedRPCLayers);
+  outputTree->Branch("cosmicMuon1Leg_RPClayerMask",&cosmicMuon1Leg_RPClayerMask);
+
+  outputTree->Branch("cosmicMuon1Leg_size", &cosmicMuon1Leg_size, "cosmicMuon1Leg_size/I");
 
 
   outputTree->Branch("l1mu_qual",&l1mu_qual);
@@ -570,7 +699,8 @@ void MuonAODAnalyzer::InitandClearStuff() {
   muon_stationMask.clear();
   muon_nMatchedRPCLayers.clear();
   muon_RPClayerMask.clear();
-
+  muon_hasInnerTrack.clear();
+  
   muon_vx.clear();
   muon_vy.clear();
   muon_vz.clear();
@@ -609,6 +739,7 @@ void MuonAODAnalyzer::InitandClearStuff() {
   dispMuon_stationMask.clear();
   dispMuon_nMatchedRPCLayers.clear();
   dispMuon_RPClayerMask.clear();
+  dispMuon_hasInnerTrack.clear();
 
   dispMuon_vx.clear();
   dispMuon_vy.clear();
@@ -618,8 +749,6 @@ void MuonAODAnalyzer::InitandClearStuff() {
   dispMuon_pz.clear();
 
   dispMuon_size = 0;
-
-
 
   cosmicMuon_eta.clear();
   cosmicMuon_etaAtSt1.clear();
@@ -650,6 +779,7 @@ void MuonAODAnalyzer::InitandClearStuff() {
   cosmicMuon_stationMask.clear();
   cosmicMuon_nMatchedRPCLayers.clear();
   cosmicMuon_RPClayerMask.clear();
+  cosmicMuon_hasInnerTrack.clear();
 
   cosmicMuon_vx.clear();
   cosmicMuon_vy.clear();
@@ -659,6 +789,46 @@ void MuonAODAnalyzer::InitandClearStuff() {
   cosmicMuon_pz.clear();
 
   cosmicMuon_size = 0;
+
+  cosmicMuon1Leg_eta.clear();
+  cosmicMuon1Leg_etaAtSt1.clear();
+  cosmicMuon1Leg_etaAtSt2.clear();
+  cosmicMuon1Leg_phi.clear();
+  cosmicMuon1Leg_phiAtSt1.clear();
+  cosmicMuon1Leg_phiAtSt2.clear();
+  cosmicMuon1Leg_pt.clear();
+  cosmicMuon1Leg_ptCorr.clear();
+  cosmicMuon1Leg_charge.clear();
+  cosmicMuon1Leg_dz.clear();
+  cosmicMuon1Leg_dzError.clear();
+  cosmicMuon1Leg_dxy.clear();
+  cosmicMuon1Leg_dxyError.clear();
+  cosmicMuon1Leg_3dIP.clear();
+  cosmicMuon1Leg_3dIPError.clear();
+  cosmicMuon1Leg_PassTightID.clear();
+  cosmicMuon1Leg_PassLooseID.clear();
+  cosmicMuon1Leg_isSAMuon.clear() ;
+  cosmicMuon1Leg_isTrackerMuon.clear();
+  cosmicMuon1Leg_isGlobalMuon.clear();
+  cosmicMuon1Leg_isPFMuon.clear();
+  cosmicMuon1Leg_nChambers.clear();
+  cosmicMuon1Leg_nChambersCSCorDT.clear();
+  cosmicMuon1Leg_nMatches.clear();
+  cosmicMuon1Leg_nMatchedStations.clear();
+  cosmicMuon1Leg_expectedNumberOfMatchedStations.clear();
+  cosmicMuon1Leg_stationMask.clear();
+  cosmicMuon1Leg_nMatchedRPCLayers.clear();
+  cosmicMuon1Leg_RPClayerMask.clear();
+  cosmicMuon1Leg_hasInnerTrack.clear();
+
+  cosmicMuon1Leg_vx.clear();
+  cosmicMuon1Leg_vy.clear();
+  cosmicMuon1Leg_vz.clear();
+  cosmicMuon1Leg_px.clear();
+  cosmicMuon1Leg_py.clear();
+  cosmicMuon1Leg_pz.clear();
+
+  cosmicMuon1Leg_size = 0;
 
   l1mu_qual.clear();
   l1mu_charge.clear();

@@ -9,7 +9,6 @@
 <use name="DataFormats/PatCandidates"/>
 <use name="DataFormats/VertexReco"/>
 <use name="DataFormats/L1GlobalTrigger"/>
-<use name="DataFormats/L1Global"/>
 <use name="FWCore/MessageLogger"/>
 <use name="TrackingTools/TrajectoryState"/>
 <use name="TrackingTools/Records"/>
