@@ -25,7 +25,8 @@ process.source = cms.Source("PoolSource",
 
 #'/store/data/Run2022C/Muon/AOD/16Jun2023-v1/2830000/00dbf34d-d9f9-4d0a-a035-13d3547707a4.root'
 #'/store/data/Run2024I/Cosmics/AOD/PromptReco-v1/000/386/455/00000/56bcb0a3-721e-4868-9ef3-4b2940882b3e.root'
-'/store/data/Run2024F/Cosmics/AOD/PromptReco-v1/000/381/968/00000/4c28b0c6-e734-40db-b97a-74579c4f71fa.root'
+# '/store/data/Run2024F/Cosmics/AOD/PromptReco-v1/000/381/968/00000/4c28b0c6-e734-40db-b97a-74579c4f71fa.root'
+'/store/data/Run2025B/Cosmics/AOD/PromptReco-v1/000/391/531/00000/513a9d12-50d9-4589-8311-0bd3a6931ca6.root'
                                 )
 )
 
@@ -62,7 +63,7 @@ process.options = cms.untracked.PSet(
 
 
 
-process.TFileService = cms.Service("TFileService", fileName = cms.string("l1tMuonNtuple_not.root") )
+process.TFileService = cms.Service("TFileService", fileName = cms.string("l1tMuonNtuple_2025.root") )
 
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.GlobalTag.globaltag="124X_dataRun3_v9"
