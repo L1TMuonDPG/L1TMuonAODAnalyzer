@@ -197,14 +197,17 @@ void MuonAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     if( !((&*muon)->innerTrack()).isNull()){
       muon_dxy.push_back( (&*muon)->innerTrack()->dxy(PV));
       muon_dz.push_back( (&*muon)->innerTrack()->dz(PV));
+      muon_hasInnerTrack.push_back(true);
     }
     else if(!((&*muon)->outerTrack()).isNull()){
       muon_dxy.push_back( (&*muon)->outerTrack()->dxy(PV));
       muon_dz.push_back( (&*muon)->outerTrack()->dz(PV));
+      muon_hasInnerTrack.push_back(false);
     }
     else{
       muon_dxy.push_back(-999.);
       muon_dz.push_back(-999.);
+      muon_hasInnerTrack.push_back(false);
     }
 
     // extrapolation of muon track coordinates
@@ -261,6 +264,7 @@ void MuonAODAnalyzer::beginJob() {
   outputTree->Branch("muon_isTrackerMuon",&muon_isTrackerMuon);
   outputTree->Branch("muon_isGlobalMuon",&muon_isGlobalMuon);
   outputTree->Branch("muon_isPFMuon",&muon_isPFMuon);
+  outputTree->Branch("muon_hasInnerTrack",&muon_hasInnerTrack);
 
   outputTree->Branch("muon_vx",&muon_vx);
   outputTree->Branch("muon_vy",&muon_vy);
@@ -342,7 +346,8 @@ void MuonAODAnalyzer::InitandClearStuff() {
   muon_stationMask.clear();
   muon_nMatchedRPCLayers.clear();
   muon_RPClayerMask.clear();
-
+  muon_hasInnerTrack.clear();
+  
   muon_vx.clear();
   muon_vy.clear();
   muon_vz.clear();

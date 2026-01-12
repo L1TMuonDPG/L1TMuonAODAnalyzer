@@ -160,6 +160,7 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     vector<Bool_t> muon_isGlobalMuon;
     vector<Bool_t> muon_isTrackerMuon;
     vector<Bool_t> muon_isPFMuon;
+    vector<Bool_t> muon_hasInnerTrack;
 
     vector<Float_t> muon_vx;
     vector<Float_t> muon_vy;
