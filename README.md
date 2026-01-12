@@ -41,3 +41,122 @@ Useful links
 CRAB tutorial: https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookCRAB3Tutorial  
 CRAB config file: https://twiki.cern.ch/twiki/bin/view/CMSPublic/CRAB3ConfigurationFile  
 CRAB exit codes: https://twiki.cern.ch/twiki/bin/view/CMSPublic/JobExitCodes  
+
+
+## Datasets 2024
+
+### Cosmics
+- /Cosmics/Run2024A-PromptReco-v1/AOD
+- /Cosmics/Run2024B-PromptReco-v1/AOD
+- /Cosmics/Run2024C-PromptReco-v1/AOD
+- /Cosmics/Run2024D-PromptReco-v1/AOD
+- /Cosmics/Run2024E-PromptReco-v1/AOD
+- /Cosmics/Run2024E-PromptReco-v2/AOD
+- /Cosmics/Run2024F-PromptReco-v1/AOD
+- /Cosmics/Run2024G-PromptReco-v1/AOD
+- /Cosmics/Run2024H-PromptReco-v1/AOD
+- /Cosmics/Run2024I-PromptReco-v1/AOD
+- /Cosmics/Run2024I-PromptReco-v2/AOD
+- /Cosmics/Run2024J-PromptReco-v1/AOD
+
+### Muon
+- /Muon0/Run2024A-PromptReco-v1/AOD
+- /Muon0/Run2024B-PromptReco-v1/AOD
+- /Muon0/Run2024C-PromptReco-v1/AOD
+- /Muon0/Run2024D-PromptReco-v1/AOD
+- /Muon0/Run2024E-PromptReco-v1/AOD
+- /Muon0/Run2024E-PromptReco-v2/AOD
+- /Muon0/Run2024F-PromptReco-v1/AOD
+- /Muon0/Run2024G-PromptReco-v1/AOD
+- /Muon0/Run2024H-PromptReco-v1/AOD
+- /Muon0/Run2024I-PromptReco-v1/AOD
+- /Muon0/Run2024I-PromptReco-v2/AOD
+- /Muon0/Run2024J-PromptReco-v1/AOD
+- /Muon1/Run2024A-PromptReco-v1/AOD
+- /Muon1/Run2024B-PromptReco-v1/AOD
+- /Muon1/Run2024C-PromptReco-v1/AOD
+- /Muon1/Run2024D-PromptReco-v1/AOD
+- /Muon1/Run2024E-PromptReco-v1/AOD
+- /Muon1/Run2024E-PromptReco-v2/AOD
+- /Muon1/Run2024F-PromptReco-v1/AOD
+- /Muon1/Run2024G-PromptReco-v1/AOD
+- /Muon1/Run2024H-PromptReco-v1/AOD
+- /Muon1/Run2024I-PromptReco-v1/AOD
+- /Muon1/Run2024I-PromptReco-v2/AOD
+- /Muon1/Run2024J-PromptReco-v1/AOD
+
+### JetMET
+- /JetMET0/Run2024A-PromptReco-v1/AOD
+- /JetMET0/Run2024B-PromptReco-v1/AOD
+- /JetMET0/Run2024C-PromptReco-v1/AOD
+- /JetMET0/Run2024D-PromptReco-v1/AOD
+- /JetMET0/Run2024E-PromptReco-v1/AOD
+- /JetMET0/Run2024E-PromptReco-v2/AOD
+- /JetMET0/Run2024F-PromptReco-v1/AOD
+- /JetMET0/Run2024G-PromptReco-v1/AOD
+- /JetMET0/Run2024H-PromptReco-v1/AOD
+- /JetMET0/Run2024I-PromptReco-v1/AOD
+- /JetMET0/Run2024I-PromptReco-v2/AOD
+- /JetMET0/Run2024J-PromptReco-v1/AOD
+- /JetMET1/Run2024A-PromptReco-v1/AOD
+- /JetMET1/Run2024B-PromptReco-v1/AOD
+- /JetMET1/Run2024C-PromptReco-v1/AOD
+- /JetMET1/Run2024D-PromptReco-v1/AOD
+- /JetMET1/Run2024E-PromptReco-v1/AOD
+- /JetMET1/Run2024E-PromptReco-v2/AOD
+- /JetMET1/Run2024F-PromptReco-v1/AOD
+- /JetMET1/Run2024G-PromptReco-v1/AOD
+- /JetMET1/Run2024H-PromptReco-v1/AOD
+- /JetMET1/Run2024I-PromptReco-v1/AOD
+- /JetMET1/Run2024I-PromptReco-v2/AOD
+- /JetMET1/Run2024J-PromptReco-v1/AOD
+
+## Datasets 2025
+
+### Cosmics
+- /Cosmics/Run2025A-PromptReco-v1/AOD
+- /Cosmics/Run2025A-PromptReco-v2/AOD
+- /Cosmics/Run2025B-PromptReco-v1/AOD
+- /Cosmics/Run2025C-PromptReco-v1/AOD
+- /Cosmics/Run2025C-PromptReco-v2/AOD
+- /Cosmics/Run2025D-PromptReco-v1/AOD
+- /Cosmics/Run2025E-PromptReco-v1/AOD
+- /Cosmics/Run2025F-PromptReco-v1/AOD
+- /Cosmics/Run2025F-PromptReco-v2/AOD
+- /Cosmics/Run2025G-PromptReco-v1/AOD
+
+### Muon
+- /Muon0/Run2025B-PromptReco-v1/AOD
+- /Muon0/Run2025C-PromptReco-v1/AOD
+- /Muon0/Run2025C-PromptReco-v2/AOD
+- /Muon0/Run2025D-PromptReco-v1/AOD
+- /Muon0/Run2025E-PromptReco-v1/AOD
+- /Muon0/Run2025F-PromptReco-v1/AOD
+- /Muon0/Run2025F-PromptReco-v2/AOD
+- /Muon1/Run2025B-PromptReco-v1/AOD
+- /Muon1/Run2025C-PromptReco-v1/AOD
+- /Muon1/Run2025C-PromptReco-v2/AOD
+- /Muon1/Run2025D-PromptReco-v1/AOD
+- /Muon1/Run2025E-PromptReco-v1/AOD
+- /Muon1/Run2025F-PromptReco-v1/AOD
+- /Muon1/Run2025F-PromptReco-v2/AOD
+- /Muon0/Run2025G-PromptReco-v1/AOD
+- /Muon1/Run2025G-PromptReco-v1/AOD
+
+### JetMET
+- /JetMET0/Run2025B-PromptReco-v1/AOD
+- /JetMET0/Run2025C-PromptReco-v1/AOD
+- /JetMET0/Run2025C-PromptReco-v2/AOD
+- /JetMET0/Run2025D-PromptReco-v1/AOD
+- /JetMET0/Run2025E-PromptReco-v1/AOD
+- /JetMET0/Run2025F-PromptReco-v1/AOD
+- /JetMET0/Run2025F-PromptReco-v2/AOD
+- /JetMET1/Run2025B-PromptReco-v1/AOD
+- /JetMET1/Run2025C-PromptReco-v1/AOD
+- /JetMET1/Run2025C-PromptReco-v2/AOD
+- /JetMET1/Run2025D-PromptReco-v1/AOD
+- /JetMET1/Run2025E-PromptReco-v1/AOD
+- /JetMET1/Run2025F-PromptReco-v1/AOD
+- /JetMET1/Run2025F-PromptReco-v2/AOD
+- /JetMET0/Run2025G-PromptReco-v1/AOD
+- /JetMET1/Run2025G-PromptReco-v1/AOD
