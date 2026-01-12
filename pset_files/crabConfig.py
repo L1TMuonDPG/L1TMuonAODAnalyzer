@@ -11,7 +11,7 @@ config.JobType.pluginName = 'Analysis'
 config.JobType.psetName = 'run3_data.py'
 config.JobType.numCores = 8
 
-config.Data.inputDataset = '/Cosmics/Run2025F-PromptReco-v1/AOD'
+config.Data.inputDataset = '/Cosmics/Run2025G-PromptReco-v1/AOD'
 config.Data.inputDBS = 'global'
 # config.Data.useParent = True
 # config.Data.partialDataset = True
