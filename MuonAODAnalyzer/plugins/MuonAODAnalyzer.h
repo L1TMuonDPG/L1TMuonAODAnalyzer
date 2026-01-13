@@ -136,9 +136,6 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     // void fillTree();
     // void makeTree();
 
-    std::vector<std::string> isoTriggerNames_;
-    std::vector<std::string> triggerNames_;
-
     // ----------member data ---------------------------
     edm::EDGetTokenT<std::vector< reco::Muon> > muonToken_;
     edm::EDGetTokenT<l1t::MuonBxCollection>l1MuonToken_;
@@ -149,7 +146,7 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     // edm::Handle<edm::TriggerResults> IsoTriggerToken_;
     // edm::Handle<std::vector<std::string>> IsoTriggerNamesToken_;
     edm::EDGetTokenT<GlobalExtBlkBxCollection> UnprefirableEventToken_;
-    edm::EDGetTokenT<BXVector<GlobalAlgBlk>> l1GtToken_;
+    // edm::EDGetTokenT<BXVector<GlobalAlgBlk>> l1GtToken_;
 
     Float_t MuonPtCut_;
     Bool_t SaveTree_, IsMC_, Debug_;
@@ -169,6 +166,9 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 
     const edm::TriggerResults *TriggerResults_;
     const trigger::TriggerEvent *TriggerSummaryLabels_;
+
+    std::vector<std::string> isoTriggerNames_;
+    std::vector<std::string> triggerNames_;
 
     TTree* outputTree;
 

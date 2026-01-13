@@ -32,12 +32,7 @@ MuonAODAnalyzer::MuonAODAnalyzer(const edm::ParameterSet& iConfig)
     //TriggerResultsToken_ = consumes<edm::TriggerResults>(edm::InputTag("TriggerResults", "", "HLTX"));
     TriggerSummaryLabelsToken_(consumes<trigger::TriggerEvent>(edm::InputTag("hltTriggerSummaryAOD", "", "HLTX"))),
     UnprefirableEventToken_(consumes<GlobalExtBlkBxCollection>(edm::InputTag("simGtExtUnprefireable"))),
-    l1GtToken_(consumes<BXVector<GlobalAlgBlk>>(iConfig.getParameter<edm::InputTag>("l1GtSrc"))),
-
-    //trig matching
-    isoTriggerNames_(iConfig.getParameter<std::vector<std::string>>("isoTriggerNames")),
-    triggerNames_(iConfig.getParameter<std::vector<std::string>>("triggerNames")),
-    theBFieldToken_(esConsumes<MagneticField, IdealMagneticFieldRecord>(edm::ESInputTag("", ""))),
+    // l1GtToken_(consumes<BXVector<GlobalAlgBlk>>(iConfig.getParameter<edm::InputTag>("l1GtSrc"))),
 
     MuonPtCut_(iConfig.getParameter<double>("MuonPtCut")),
     SaveTree_(iConfig.getParameter<bool>("SaveTree")),
@@ -45,17 +40,23 @@ MuonAODAnalyzer::MuonAODAnalyzer(const edm::ParameterSet& iConfig)
     Debug_(iConfig.getParameter<bool>("Debug")),
 
     muPropagatorSetup1st_(iConfig.getParameter<edm::ParameterSet>("muProp1st"), consumesCollector()),
-    muPropagatorSetup2nd_(iConfig.getParameter<edm::ParameterSet>("muProp2nd"), consumesCollector())
-    
-    triggerMatching_ = true;
-    triggerMaxDeltaR_ = 0.1;
-    triggerProcessLabel_ = "HLT";
+    muPropagatorSetup2nd_(iConfig.getParameter<edm::ParameterSet>("muProp2nd"), consumesCollector()),
+  
+    //trig matching
+    isoTriggerNames_(iConfig.getParameter<std::vector<std::string>>("isoTriggerNames")),
+    triggerNames_(iConfig.getParameter<std::vector<std::string>>("triggerNames"))
+    // theBFieldToken_(esConsumes<MagneticField, IdealMagneticFieldRecord>(edm::ESInputTag("", ""))),
+
 {
   //now do what ever initialization is needed
   // usesResource("TFileService"); // shared resources
 
   edm::Service<TFileService> fs;
   outputTree = fs->make<TTree>("tree","tree");
+
+  triggerMatching_ = true;
+  triggerMaxDeltaR_ = 0.1;
+  triggerProcessLabel_ = "HLT";
 
 }
 
@@ -105,20 +106,20 @@ void MuonAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   }
 
   //first bunch in train
-  edm::Handle<BXVector<GlobalAlgBlk>> l1GtHandle;
-  iEvent.getByToken(l1GtToken_, l1GtHandle);
-  for(int i =0; i <512; i++){
-    if(!IsMC_){ 
-      if(i==472){
-        passL1_Final_bxmin1= l1GtHandle->begin(-1)->getAlgoDecisionFinal(i);
-        passL1_Final_bxmin2= l1GtHandle->begin(-2)->getAlgoDecisionFinal(i);
-      }
-    }
-    else {
-      passL1_Final_bxmin1= false;
-      passL1_Final_bxmin2= false;
-    }
-  }
+  // edm::Handle<BXVector<GlobalAlgBlk>> l1GtHandle;
+  // iEvent.getByToken(l1GtToken_, l1GtHandle);
+  // for(int i =0; i <512; i++){
+  //   if(!IsMC_){ 
+  //     if(i==472){
+  //       passL1_Final_bxmin1= l1GtHandle->begin(-1)->getAlgoDecisionFinal(i);
+  //       passL1_Final_bxmin2= l1GtHandle->begin(-2)->getAlgoDecisionFinal(i);
+  //     }
+  //   }
+  //   else {
+  //     passL1_Final_bxmin1= false;
+  //     passL1_Final_bxmin2= false;
+  //   }
+  // }
 
   // L1 muons
   edm::Handle<l1t::MuonBxCollection> l1muoncoll;
@@ -238,59 +239,61 @@ void MuonAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         muon_etaAtSt2.push_back(-999);
         muon_phiAtSt2.push_back(-999);
     }
-  }
+  
 
-  if (triggerMatching_) {
-      double isoMatchDeltaR = 9999.;
-      double matchDeltaR = 9999.;
-      int hasIsoTriggered = 0;
-      int hasTriggered = 0;
+    if (triggerMatching_) {
+        double isoMatchDeltaR = 9999.;
+        double matchDeltaR = 9999.;
+        int hasIsoTriggered = 0;
+        int hasTriggered = 0;
 
-      int passesSingleMuonFlag = 0;
+        int passesSingleMuonFlag = 0;
 
-      // first check if the trigger results are valid:
-      if (TriggerResults_ != nullptr) {
-        if (TriggerSummaryLabels_ != nullptr) {
-          const edm::TriggerNames& trigNames = iEvent.triggerNames(*TriggerResults_);
+        // first check if the trigger results are valid:
+        if (TriggerResults_ != nullptr) {
+          if (TriggerSummaryLabels_ != nullptr) {
+            const edm::TriggerNames& trigNames = iEvent.triggerNames(*TriggerResults_);
 
-          for (UInt_t iPath = 0; iPath < isoTriggerNames_.size(); ++iPath) {
-              if (passesSingleMuonFlag == 1)
-                  continue;
-              std::string pathName = isoTriggerNames_.at(iPath);
+            for (UInt_t iPath = 0; iPath < isoTriggerNames_.size(); ++iPath) {
+                if (passesSingleMuonFlag == 1)
+                    continue;
+                std::string pathName = isoTriggerNames_.at(iPath);
 
-              bool passTrig = false;
+                bool passTrig = false;
 
-              if (trigNames.triggerIndex(pathName) < trigNames.size())
-                  passTrig = TriggerResults_->accept(trigNames.triggerIndex(pathName));
-              if (passTrig)
-                  passesSingleMuonFlag = 1;
-          }
+                if (trigNames.triggerIndex(pathName) < trigNames.size())
+                    passTrig = TriggerResults_->accept(trigNames.triggerIndex(pathName));
+                if (passTrig)
+                    passesSingleMuonFlag = 1;
+            }
 
-          // get trigger objects:
-          const trigger::TriggerObjectCollection triggerObjects = TriggerSummaryLabels_->getObjects();
+            // get trigger objects:
+            const trigger::TriggerObjectCollection triggerObjects = TriggerSummaryLabels_->getObjects();
 
-          matchDeltaR = match_trigger(triggerIndices_, triggerObjects, *TriggerSummaryLabels_, muon);
-          if (matchDeltaR < triggerMaxDeltaR_)
-              hasTriggered = 1;
+            matchDeltaR = match_trigger(triggerIndices_, triggerObjects, *TriggerSummaryLabels_, *muon);
+            if (matchDeltaR < triggerMaxDeltaR_)
+                hasTriggered = 1;
 
-          isoMatchDeltaR = match_trigger(isoTriggerIndices_, triggerObjects, *TriggerSummaryLabels_, muon);
+            isoMatchDeltaR = match_trigger(isoTriggerIndices_, triggerObjects, *TriggerSummaryLabels_, *muon);
 
-          if (isoMatchDeltaR < triggerMaxDeltaR_)
-              hasIsoTriggered = 1;
-        }  // end if (TriggerSummaryLabels_.isValid())
-      }  // end if (TriggerResults_.isValid())
+            if (isoMatchDeltaR < triggerMaxDeltaR_)
+                hasIsoTriggered = 1;
+          }  // end if (TriggerSummaryLabels_.isValid())
+        }  // end if (TriggerResults_.isValid())
 
-      muon_hlt_isomu.push_back(hasIsoTriggered);
-      muon_hlt_mu.push_back(hasTriggered);
-      muon_hlt_isoDeltaR.push_back(isoMatchDeltaR);
-      muon_hlt_deltaR.push_back(matchDeltaR);
-      muon_passesSingleMuon.push_back(passesSingleMuonFlag);
-  } else {
-      muon_hlt_isomu.push_back(-999);
-      muon_hlt_mu.push_back(-999);
-      muon_hlt_isoDeltaR.push_back(-999);
-      muon_hlt_deltaR.push_back(-999);
-      muon_passesSingleMuon.push_back(-999);
+        muon_hlt_isomu.push_back(hasIsoTriggered);
+        muon_hlt_mu.push_back(hasTriggered);
+        muon_hlt_isoDeltaR.push_back(isoMatchDeltaR);
+        muon_hlt_deltaR.push_back(matchDeltaR);
+        muon_passesSingleMuon.push_back(passesSingleMuonFlag);
+    } else {
+        muon_hlt_isomu.push_back(-999);
+        muon_hlt_mu.push_back(-999);
+        muon_hlt_isoDeltaR.push_back(-999);
+        muon_hlt_deltaR.push_back(-999);
+        muon_passesSingleMuon.push_back(-999);
+    }
+
   }
 
   if(SaveTree_)outputTree->Fill();

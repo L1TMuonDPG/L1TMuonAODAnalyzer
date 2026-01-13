@@ -9,7 +9,6 @@
 <use name="DataFormats/PatCandidates"/>
 <use name="DataFormats/VertexReco"/>
 <use name="DataFormats/L1GlobalTrigger"/>
-<use name="DataFormats/L1Global"/>
 <use name="FWCore/MessageLogger"/>
 <use name="TrackingTools/TrajectoryState"/>
 <use name="TrackingTools/Records"/>
@@ -19,7 +18,6 @@
 <use name="CondFormats/L1TObjects"/>
 <use name="CondFormats/DataRecord"/>
 <use name="CommonTools/UtilAlgos"/>
-<use name="L1Trigger/L1TGlobal"/>
 <use name="L1Trigger/L1TCommon"/>
 <use name="DataFormats/HepMCCandidate"/>
 <use name="L1Trigger/L1TMuon"/>
