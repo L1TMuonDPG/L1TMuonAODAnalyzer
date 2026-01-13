@@ -128,7 +128,7 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     // void beginRun(const edm::Run&, const edm::EventSetup&);
     // void endRun(const edm::Run&, const edm::EventSetup&);
     virtual void InitandClearStuff();
-    
+
     double match_trigger(std::vector<int> &trigIndices,
                     const trigger::TriggerObjectCollection &trigObjs,
                     const trigger::TriggerEvent &triggerEvent,
@@ -217,6 +217,11 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     vector<Bool_t> muon_isTrackerMuon;
     vector<Bool_t> muon_isPFMuon;
     vector<Bool_t> muon_hasInnerTrack;
+    vector<int> muon_hlt_isomu;
+    vector<int> muon_hlt_mu;
+    vector<Float_t> muon_hlt_isoDeltaR;
+    vector<Float_t> muon_hlt_deltaR;
+    vector<int> muon_passesSingleMuon;
 
     vector<Float_t> muon_vx;
     vector<Float_t> muon_vy;
