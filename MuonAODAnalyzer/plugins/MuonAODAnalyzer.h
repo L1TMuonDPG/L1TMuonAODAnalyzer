@@ -131,6 +131,8 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     // void fillTree();
     // void makeTree();
 
+    std::vector<std::string> isoTriggerNames_;
+    std::vector<std::string> triggerNames_;
 
     // ----------member data ---------------------------
     edm::EDGetTokenT<std::vector< reco::Muon> > muonToken_;
@@ -138,11 +140,21 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     edm::EDGetTokenT<BXVector<l1t::RegionalMuonCand>> l1BMTFRegionalMuonCandToken_;
     edm::EDGetTokenT<std::vector<Vertex> > verticesToken_;
     edm::EDGetTokenT<edm::TriggerResults> trgresultsToken_;
+    edm::EDGetTokenT<trigger::TriggerEvent> TriggerSummaryLabelsToken_;
+    edm::Handle<edm::TriggerResults> IsoTriggerToken_;
+    edm::Handle<std::vector<std::string>> IsoTriggerNamesToken_;
     edm::EDGetTokenT<GlobalExtBlkBxCollection> UnprefirableEventToken_;
     edm::EDGetTokenT<BXVector<GlobalAlgBlk>> l1GtToken_;
 
     Float_t MuonPtCut_;
     Bool_t SaveTree_, IsMC_, Debug_;
+
+    double triggerMaxDeltaR_;
+    bool triggerMatching_;
+    std::string triggerProcessLabel_;
+    std::vector<int> isoTriggerIndices_;
+    std::vector<int> triggerIndices_;
+    HLTConfigProvider hltConfig_;
 
     const PropagateToMuonSetup muPropagatorSetup1st_;
     const PropagateToMuonSetup muPropagatorSetup2nd_;
