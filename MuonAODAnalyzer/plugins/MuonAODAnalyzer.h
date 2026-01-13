@@ -122,12 +122,17 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 
   private:
     void beginJob() override;
+    void beginRun(const edm::Run &, const edm::EventSetup &);
     void analyze(const edm::Event&, const edm::EventSetup&) override;
     void endJob() override;
     // void beginRun(const edm::Run&, const edm::EventSetup&);
     // void endRun(const edm::Run&, const edm::EventSetup&);
     virtual void InitandClearStuff();
-
+    
+    double match_trigger(std::vector<int> &trigIndices,
+                    const trigger::TriggerObjectCollection &trigObjs,
+                    const trigger::TriggerEvent &triggerEvent,
+                    const reco::Muon &mu);
     // void fillTree();
     // void makeTree();
 
@@ -141,8 +146,8 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     edm::EDGetTokenT<std::vector<Vertex> > verticesToken_;
     edm::EDGetTokenT<edm::TriggerResults> trgresultsToken_;
     edm::EDGetTokenT<trigger::TriggerEvent> TriggerSummaryLabelsToken_;
-    edm::Handle<edm::TriggerResults> IsoTriggerToken_;
-    edm::Handle<std::vector<std::string>> IsoTriggerNamesToken_;
+    // edm::Handle<edm::TriggerResults> IsoTriggerToken_;
+    // edm::Handle<std::vector<std::string>> IsoTriggerNamesToken_;
     edm::EDGetTokenT<GlobalExtBlkBxCollection> UnprefirableEventToken_;
     edm::EDGetTokenT<BXVector<GlobalAlgBlk>> l1GtToken_;
 
@@ -161,6 +166,9 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 
     PropagateToMuon muPropagator1st_;
     PropagateToMuon muPropagator2nd_;
+
+    const edm::TriggerResults *TriggerResults_;
+    const trigger::TriggerEvent *TriggerSummaryLabels_;
 
     TTree* outputTree;
 
