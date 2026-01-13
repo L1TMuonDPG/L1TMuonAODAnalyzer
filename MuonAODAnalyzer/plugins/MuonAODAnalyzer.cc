@@ -29,8 +29,10 @@ MuonAODAnalyzer::MuonAODAnalyzer(const edm::ParameterSet& iConfig)
     l1BMTFRegionalMuonCandToken_(consumes<BXVector<l1t::RegionalMuonCand>>(edm::InputTag("gmtStage2Digis","BMTF"))),
     verticesToken_(consumes<std::vector<Vertex> > (iConfig.getParameter<edm::InputTag>("Vertices"))),
     trgresultsToken_(consumes<TriggerResults>(iConfig.getParameter<edm::InputTag>("Triggers"))),
+    //TriggerResultsToken_ = consumes<edm::TriggerResults>(edm::InputTag("TriggerResults", "", "HLTX"));
+    TriggerSummaryLabelsToken_(consumes<trigger::TriggerEvent>(edm::InputTag("hltTriggerSummaryAOD", "", "HLTX"))),
     UnprefirableEventToken_(consumes<GlobalExtBlkBxCollection>(edm::InputTag("simGtExtUnprefireable"))),
-    l1GtToken_(consumes<BXVector<GlobalAlgBlk>>(iConfig.getParameter<edm::InputTag>("l1GtSrc"))),
+    // l1GtToken_(consumes<BXVector<GlobalAlgBlk>>(iConfig.getParameter<edm::InputTag>("l1GtSrc"))),
 
     dispMuonToken_(consumes< std::vector< reco::Muon> >(iConfig.getParameter<edm::InputTag>("DispMuons"))),
     CosmicMuonToken_(consumes< std::vector< reco::Muon> >(iConfig.getParameter<edm::InputTag>("CosmicMuons"))),
@@ -42,7 +44,12 @@ MuonAODAnalyzer::MuonAODAnalyzer(const edm::ParameterSet& iConfig)
     Debug_(iConfig.getParameter<bool>("Debug")),
 
     muPropagatorSetup1st_(iConfig.getParameter<edm::ParameterSet>("muProp1st"), consumesCollector()),
-    muPropagatorSetup2nd_(iConfig.getParameter<edm::ParameterSet>("muProp2nd"), consumesCollector())
+    muPropagatorSetup2nd_(iConfig.getParameter<edm::ParameterSet>("muProp2nd"), consumesCollector()),
+  
+    //trig matching
+    isoTriggerNames_(iConfig.getParameter<std::vector<std::string>>("isoTriggerNames")),
+    triggerNames_(iConfig.getParameter<std::vector<std::string>>("triggerNames"))
+    // theBFieldToken_(esConsumes<MagneticField, IdealMagneticFieldRecord>(edm::ESInputTag("", ""))),
 
 {
   //now do what ever initialization is needed
@@ -50,6 +57,10 @@ MuonAODAnalyzer::MuonAODAnalyzer(const edm::ParameterSet& iConfig)
 
   edm::Service<TFileService> fs;
   outputTree = fs->make<TTree>("tree","tree");
+
+  triggerMatching_ = true;
+  triggerMaxDeltaR_ = 0.1;
+  triggerProcessLabel_ = "HLT";
 
 }
 
@@ -99,20 +110,20 @@ void MuonAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   }
 
   //first bunch in train
-  edm::Handle<BXVector<GlobalAlgBlk>> l1GtHandle;
-  iEvent.getByToken(l1GtToken_, l1GtHandle);
-  for(int i =0; i <512; i++){
-    if(!IsMC_){ 
-      if(i==472){
-        passL1_Final_bxmin1= l1GtHandle->begin(-1)->getAlgoDecisionFinal(i);
-        passL1_Final_bxmin2= l1GtHandle->begin(-2)->getAlgoDecisionFinal(i);
-      }
-    }
-    else {
-      passL1_Final_bxmin1= false;
-      passL1_Final_bxmin2= false;
-    }
-  }
+  // edm::Handle<BXVector<GlobalAlgBlk>> l1GtHandle;
+  // iEvent.getByToken(l1GtToken_, l1GtHandle);
+  // for(int i =0; i <512; i++){
+  //   if(!IsMC_){ 
+  //     if(i==472){
+  //       passL1_Final_bxmin1= l1GtHandle->begin(-1)->getAlgoDecisionFinal(i);
+  //       passL1_Final_bxmin2= l1GtHandle->begin(-2)->getAlgoDecisionFinal(i);
+  //     }
+  //   }
+  //   else {
+  //     passL1_Final_bxmin1= false;
+  //     passL1_Final_bxmin2= false;
+  //   }
+  // }
 
   // L1 muons
   edm::Handle<l1t::MuonBxCollection> l1muoncoll;
@@ -232,6 +243,61 @@ void MuonAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
         muon_etaAtSt2.push_back(-999);
         muon_phiAtSt2.push_back(-999);
     }
+  
+
+    if (triggerMatching_) {
+        double isoMatchDeltaR = 9999.;
+        double matchDeltaR = 9999.;
+        int hasIsoTriggered = 0;
+        int hasTriggered = 0;
+
+        int passesSingleMuonFlag = 0;
+
+        // first check if the trigger results are valid:
+        if (TriggerResults_ != nullptr) {
+          if (TriggerSummaryLabels_ != nullptr) {
+            const edm::TriggerNames& trigNames = iEvent.triggerNames(*TriggerResults_);
+
+            for (UInt_t iPath = 0; iPath < isoTriggerNames_.size(); ++iPath) {
+                if (passesSingleMuonFlag == 1)
+                    continue;
+                std::string pathName = isoTriggerNames_.at(iPath);
+
+                bool passTrig = false;
+
+                if (trigNames.triggerIndex(pathName) < trigNames.size())
+                    passTrig = TriggerResults_->accept(trigNames.triggerIndex(pathName));
+                if (passTrig)
+                    passesSingleMuonFlag = 1;
+            }
+
+            // get trigger objects:
+            const trigger::TriggerObjectCollection triggerObjects = TriggerSummaryLabels_->getObjects();
+
+            matchDeltaR = match_trigger(triggerIndices_, triggerObjects, *TriggerSummaryLabels_, *muon);
+            if (matchDeltaR < triggerMaxDeltaR_)
+                hasTriggered = 1;
+
+            isoMatchDeltaR = match_trigger(isoTriggerIndices_, triggerObjects, *TriggerSummaryLabels_, *muon);
+
+            if (isoMatchDeltaR < triggerMaxDeltaR_)
+                hasIsoTriggered = 1;
+          }  // end if (TriggerSummaryLabels_.isValid())
+        }  // end if (TriggerResults_.isValid())
+
+        muon_hlt_isomu.push_back(hasIsoTriggered);
+        muon_hlt_mu.push_back(hasTriggered);
+        muon_hlt_isoDeltaR.push_back(isoMatchDeltaR);
+        muon_hlt_deltaR.push_back(matchDeltaR);
+        muon_passesSingleMuon.push_back(passesSingleMuonFlag);
+    } else {
+        muon_hlt_isomu.push_back(-999);
+        muon_hlt_mu.push_back(-999);
+        muon_hlt_isoDeltaR.push_back(-999);
+        muon_hlt_deltaR.push_back(-999);
+        muon_passesSingleMuon.push_back(-999);
+    }
+
   }
 
   // Displaced muons
@@ -461,6 +527,98 @@ void MuonAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
 }
 
+double MuonAODAnalyzer::match_trigger(std::vector<int> &trigIndices,
+                                              const trigger::TriggerObjectCollection &trigObjs,
+                                              const trigger::TriggerEvent &triggerEvent,
+                                              const reco::Muon &mu) {
+  double matchDeltaR = 9999;
+  
+  for (size_t iTrigIndex = 0; iTrigIndex < trigIndices.size(); ++iTrigIndex) {
+    int triggerIndex = trigIndices[iTrigIndex];
+    const std::vector<std::string> moduleLabels(hltConfig_.moduleLabels(triggerIndex));
+    // find index of the last module:
+    const unsigned moduleIndex = hltConfig_.size(triggerIndex) - 2;
+    // find index of HLT trigger name:
+    const unsigned hltFilterIndex =
+        triggerEvent.filterIndex(edm::InputTag(moduleLabels[moduleIndex], "", triggerProcessLabel_));
+
+    if (hltFilterIndex < triggerEvent.sizeFilters()) {
+      const trigger::Keys triggerKeys(triggerEvent.filterKeys(hltFilterIndex));
+      const trigger::Vids triggerVids(triggerEvent.filterIds(hltFilterIndex));
+
+      const unsigned nTriggers = triggerVids.size();
+      for (size_t iTrig = 0; iTrig < nTriggers; ++iTrig) {
+        // loop over all trigger objects:
+        const trigger::TriggerObject trigObject = trigObjs[triggerKeys[iTrig]];
+
+        double dRtmp = deltaR(mu, trigObject);
+
+        if (dRtmp < matchDeltaR) {
+          matchDeltaR = dRtmp;
+        }
+
+      }  // loop over different trigger objects
+    }    // if trigger is in event (should apply hltFilter with used trigger...)
+  }      // loop over muon candidates
+
+  return matchDeltaR;
+}
+
+// ------------ method called once each run just before starting event loop
+// ------------
+void MuonAODAnalyzer::beginRun(const edm::Run &run, const edm::EventSetup &eventSetup) {
+  // Prepare for trigger matching for each new run:
+  // Look up triggetIndices in the HLT config for the different paths
+  if (triggerMatching_) {
+    bool changed = true;
+    if (!hltConfig_.init(run, eventSetup, triggerProcessLabel_, changed)) {
+      // if you can't initialize hlt configuration, crash!
+      std::cout << "Error: didn't find process" << triggerProcessLabel_ << std::endl;
+      assert(false);
+    }
+
+    bool enableWildcard = true;
+    for (size_t iTrig = 0; iTrig < triggerNames_.size(); ++iTrig) {
+      // prepare for regular expression (with wildcards) functionality:
+      TString tNameTmp = TString(triggerNames_[iTrig]);
+      TRegexp tNamePattern = TRegexp(tNameTmp, enableWildcard);
+      int tIndex = -1;
+      // find the trigger index:
+      for (unsigned ipath = 0; ipath < hltConfig_.size(); ++ipath) {
+        // use TString since it provides reg exp functionality:
+        TString tmpName = TString(hltConfig_.triggerName(ipath));
+        if (tmpName.Contains(tNamePattern)) {
+          tIndex = int(ipath);
+          triggerIndices_.push_back(tIndex);
+        }
+      }
+      if (tIndex < 0) {  // if can't find trigger path at all, give warning:
+        std::cout << "Warning: Could not find trigger" << triggerNames_[iTrig] << std::endl;
+        //assert(false);
+      }
+    }  // end for triggerNames
+    for (size_t iTrig = 0; iTrig < isoTriggerNames_.size(); ++iTrig) {
+      // prepare for regular expression functionality:
+      TString tNameTmp = TString(isoTriggerNames_[iTrig]);
+      TRegexp tNamePattern = TRegexp(tNameTmp, enableWildcard);
+      int tIndex = -1;
+      // find the trigger index:
+      for (unsigned ipath = 0; ipath < hltConfig_.size(); ++ipath) {
+        // use TString since it provides reg exp functionality:
+        TString tmpName = TString(hltConfig_.triggerName(ipath));
+        if (tmpName.Contains(tNamePattern)) {
+          tIndex = int(ipath);
+          isoTriggerIndices_.push_back(tIndex);
+        }
+      }
+      if (tIndex < 0) {  // if can't find trigger path at all, give warning:
+        std::cout << "Warning: Could not find trigger" << isoTriggerNames_[iTrig] << std::endl;
+        //assert(false);
+      }
+    }  // end for isoTriggerNames
+  }    // end if (triggerMatching_)
+}
+
 // ------------ method called once each job just before starting event loop  ------------
 void MuonAODAnalyzer::beginJob() {
   // please remove this method if not needed
@@ -508,6 +666,12 @@ void MuonAODAnalyzer::beginJob() {
   outputTree->Branch("muon_stationMask",&muon_stationMask);
   outputTree->Branch("muon_nMatchedRPCLayers",&muon_nMatchedRPCLayers);
   outputTree->Branch("muon_RPClayerMask",&muon_RPClayerMask);
+
+  outputTree->Branch("muon_hlt_isomu",&muon_hlt_isomu);
+  outputTree->Branch("muon_hlt_mu",&muon_hlt_mu);
+  outputTree->Branch("muon_hlt_isoDeltaR",&muon_hlt_isoDeltaR);
+  outputTree->Branch("muon_hlt_deltaR",&muon_hlt_deltaR);
+  outputTree->Branch("muon_passesSingleMuon",&muon_passesSingleMuon);
 
   outputTree->Branch("muon_size", &muon_size, "muon_size/I");
 
@@ -700,6 +864,12 @@ void MuonAODAnalyzer::InitandClearStuff() {
   muon_nMatchedRPCLayers.clear();
   muon_RPClayerMask.clear();
   muon_hasInnerTrack.clear();
+
+  muon_hlt_isomu.clear();
+  muon_hlt_mu.clear();
+  muon_hlt_isoDeltaR.clear();
+  muon_hlt_deltaR.clear();
+  muon_passesSingleMuon.clear();
   
   muon_vx.clear();
   muon_vy.clear();

@@ -80,7 +80,7 @@ process.endjob_step = cms.EndPath(process.endOfProcess)
 # process.source.lumisToProcess.extend(myLumis)
 # JSONfile = 'Cert_271036-284044_13TeV_ReReco_07Aug2017_Collisions16_JSON.txt'
 
-process.load('MuonAODAnalyzer.MuonAODAnalyzer.MuonAODAnalyzer_cfi')
+process.load('L1TMuonAODAnalyzer.MuonAODAnalyzer.MuonAODAnalyzer_cfi')
 
 process.analysis_step = cms.Path(process.MuonAODAnalyzer)
 

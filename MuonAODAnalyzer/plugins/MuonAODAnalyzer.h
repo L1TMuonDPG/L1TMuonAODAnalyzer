@@ -17,20 +17,30 @@
 //
 
 // system include files
+#include <map>
 #include <memory>
+#include <algorithm>
+#include <cassert>
+#include <cstdint>
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <utility>
+
+// ROOT includes
 #include "TLorentzVector.h"
 #include "TFile.h"
 #include "TDirectory.h"
 #include "TTree.h"
 #include "TMath.h"
+#include "TRegexp.h"
+#include "TString.h"
 #include <fmt/printf.h>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -54,9 +64,23 @@
 #include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
+#include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include "DataFormats/L1TGlobal/interface/GlobalAlgBlk.h"
 #include "DataFormats/L1TGlobal/interface/GlobalExtBlk.h"
 #include "DataFormats/L1TMuon/interface/RegionalMuonCand.h"
+#include "DataFormats/CSCRecHit/interface/CSCSegmentCollection.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
+#include "Geometry/CSCGeometry/interface/CSCChamber.h"
+#include "Geometry/CSCGeometry/interface/CSCGeometry.h"
+#include "Geometry/Records/interface/MuonGeometryRecord.h"
+#include "DataFormats/MuonReco/interface/MuonFwd.h"
+#include "DataFormats/MuonReco/interface/MuonEnergy.h"
+#include "DataFormats/MuonReco/interface/MuonTime.h"
+#include "DataFormats/Math/interface/deltaR.h"
+#include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
+#include "DataFormats/HLTReco/interface/TriggerEvent.h"
+#include "DataFormats/HLTReco/interface/TriggerObject.h"
 
 // Information about stations
 #include "DataFormats/MuonReco/interface/Muon.h"
@@ -64,6 +88,18 @@
 // muon track extrapolation
 #include "MuonAnalysis/MuonAssociators/interface/PropagateToMuonSetup.h"
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
+#include "CondFormats/AlignmentRecord/interface/TrackerSurfaceDeformationRcd.h"
+#include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
+#include "DataFormats/GeometryVector/interface/GlobalVector.h"
+#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "TrackingTools/TrajectoryState/interface/FreeTrajectoryState.h"
+#include "MagneticField/Engine/interface/MagneticField.h"
+
+#include "L1Trigger/L1TMuon/interface/GeometryTranslator.h"
+#include "L1Trigger/L1TMuonEndCap/interface/Common.h"
+#include "L1Trigger/L1TMuonEndCap/interface/EMTFSubsystemCollector.h"
+#include "L1Trigger/L1TMuonEndCap/interface/TrackTools.h"
+#include "L1Trigger/L1TMuonEndCap/interface/DebugTools.h"
 
 
 //
@@ -86,15 +122,19 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 
   private:
     void beginJob() override;
+    void beginRun(const edm::Run &, const edm::EventSetup &);
     void analyze(const edm::Event&, const edm::EventSetup&) override;
     void endJob() override;
     // void beginRun(const edm::Run&, const edm::EventSetup&);
     // void endRun(const edm::Run&, const edm::EventSetup&);
     virtual void InitandClearStuff();
 
+    double match_trigger(std::vector<int> &trigIndices,
+                    const trigger::TriggerObjectCollection &trigObjs,
+                    const trigger::TriggerEvent &triggerEvent,
+                    const reco::Muon &mu);
     // void fillTree();
     // void makeTree();
-
 
     // ----------member data ---------------------------
     edm::EDGetTokenT<std::vector< reco::Muon> > muonToken_;
@@ -102,8 +142,11 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     edm::EDGetTokenT<BXVector<l1t::RegionalMuonCand>> l1BMTFRegionalMuonCandToken_;
     edm::EDGetTokenT<std::vector<Vertex> > verticesToken_;
     edm::EDGetTokenT<edm::TriggerResults> trgresultsToken_;
+    edm::EDGetTokenT<trigger::TriggerEvent> TriggerSummaryLabelsToken_;
+    // edm::Handle<edm::TriggerResults> IsoTriggerToken_;
+    // edm::Handle<std::vector<std::string>> IsoTriggerNamesToken_;
     edm::EDGetTokenT<GlobalExtBlkBxCollection> UnprefirableEventToken_;
-    edm::EDGetTokenT<BXVector<GlobalAlgBlk>> l1GtToken_;
+    // edm::EDGetTokenT<BXVector<GlobalAlgBlk>> l1GtToken_;
 
     edm::EDGetTokenT<std::vector< reco::Muon> > dispMuonToken_;
     edm::EDGetTokenT<std::vector< reco::Muon> > CosmicMuonToken_;
@@ -112,11 +155,24 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     Float_t MuonPtCut_;
     Bool_t SaveTree_, IsMC_, Debug_;
 
+    double triggerMaxDeltaR_;
+    bool triggerMatching_;
+    std::string triggerProcessLabel_;
+    std::vector<int> isoTriggerIndices_;
+    std::vector<int> triggerIndices_;
+    HLTConfigProvider hltConfig_;
+
     const PropagateToMuonSetup muPropagatorSetup1st_;
     const PropagateToMuonSetup muPropagatorSetup2nd_;
 
     PropagateToMuon muPropagator1st_;
     PropagateToMuon muPropagator2nd_;
+
+    const edm::TriggerResults *TriggerResults_;
+    const trigger::TriggerEvent *TriggerSummaryLabels_;
+
+    std::vector<std::string> isoTriggerNames_;
+    std::vector<std::string> triggerNames_;
 
     TTree* outputTree;
 
@@ -165,6 +221,11 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     vector<Bool_t> muon_isTrackerMuon;
     vector<Bool_t> muon_isPFMuon;
     vector<Bool_t> muon_hasInnerTrack;
+    vector<int> muon_hlt_isomu;
+    vector<int> muon_hlt_mu;
+    vector<Float_t> muon_hlt_isoDeltaR;
+    vector<Float_t> muon_hlt_deltaR;
+    vector<int> muon_passesSingleMuon;
 
     vector<Float_t> muon_vx;
     vector<Float_t> muon_vy;

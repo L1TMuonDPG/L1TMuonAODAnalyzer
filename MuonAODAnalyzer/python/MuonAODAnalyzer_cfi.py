@@ -15,6 +15,20 @@ MuonAODAnalyzer = cms.EDAnalyzer('MuonAODAnalyzer',
     SaveTree=cms.bool(True),
     Debug=cms.bool(False),
 
+    isoTriggerNames = cms.vstring(
+      "HLT_IsoMu27_v*",
+      "HLT_IsoMu30_v*",
+    ),
+    triggerNames = cms.vstring(
+      "HLT_Mu50_v*",
+      "HLT_Mu55_v*",
+      # pA triggers
+      # "HLT_PAL3Mu12_v*",
+      # "HLT_PAL3Mu15_v*",
+      # "HLT_PAL2Mu12_v*",
+      # "HLT_PAL2Mu15_v*",
+    ),
+
     # muon track extrapolation to 1st station
     muProp1st = cms.PSet(
           useTrack = cms.string("tracker"),  # 'none' to use Candidate P4; or 'tracker', 'muon', 'global'
