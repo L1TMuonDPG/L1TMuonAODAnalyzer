@@ -21,4 +21,10 @@
 <use name="CommonTools/UtilAlgos"/>
 <use name="L1Trigger/L1TGlobal"/>
 <use name="L1Trigger/L1TCommon"/>
+<use name="DataFormats/HepMCCandidate"/>
+<use name="L1Trigger/L1TMuon"/>
+<use name="L1Trigger/L1TMuonEndCap"/>
+<use name="HLTrigger/HLTcore"/>
+<use name="DataFormats/HLTReco"/>
+<use name="TrackingTools/GeomPropagators"/>
 <flags EDM_PLUGIN="1"/>
