@@ -1,0 +1,172 @@
+// -*- C++ -*-
+//
+// Package:    EMTFTools/EMTFNtuple
+// Class:      EMTFNtuple
+//
+// Description: Creates flat ntuples to be used for EMTF studies.
+//              Simplified to only include RecoMuons, EventInfo, and TriggerResults.
+//
+
+// system include files
+#include <algorithm>
+#include <cassert>
+#include <cstdint>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+// ROOT includes
+#include "TFile.h"
+#include "TMath.h"
+#include "TString.h"
+#include "TTree.h"
+#include "TRegexp.h"
+
+// CMSSW includes
+#include "FWCore/Framework/interface/Frameworkfwd.h"
+#include "FWCore/Framework/interface/one/EDAnalyzer.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/Utilities/interface/InputTag.h"
+
+// reco muons
+#include "DataFormats/MuonReco/interface/Muon.h"
+#include "DataFormats/PatCandidates/interface/Muon.h"
+#include "DataFormats/MuonReco/interface/MuonFwd.h"
+#include "DataFormats/MuonReco/interface/MuonEnergy.h"
+#include "DataFormats/MuonReco/interface/MuonTime.h"
+#include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/TrackReco/interface/TrackFwd.h"
+
+// trigger info
+#include "DataFormats/Math/interface/deltaR.h"
+#include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/HLTReco/interface/TriggerEvent.h"
+#include "DataFormats/HLTReco/interface/TriggerObject.h"
+#include "FWCore/Common/interface/TriggerNames.h"
+
+// vertex
+#include "DataFormats/VertexReco/interface/Vertex.h"
+#include "DataFormats/VertexReco/interface/VertexFwd.h"
+
+// track extrapolation
+#include "MuonAnalysis/MuonAssociators/interface/PropagateToMuonSetup.h"
+#include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
+#include "DataFormats/GeometryVector/interface/GlobalVector.h"
+#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "MagneticField/Engine/interface/MagneticField.h"
+
+class EMTFNtuple : public edm::one::EDAnalyzer<edm::one::SharedResources> {
+  public:
+    explicit EMTFNtuple(const edm::ParameterSet &);
+    ~EMTFNtuple();
+
+    static void fillDescriptions(edm::ConfigurationDescriptions &descriptions);
+
+  private:
+    void beginJob() override;
+    void beginRun(const edm::Run &, const edm::EventSetup &);
+    void analyze(const edm::Event &, const edm::EventSetup &) override;
+    void endJob() override;
+
+    // Aux functions
+    void getHandles(const edm::Event &iEvent, const edm::EventSetup &iSetup);
+    double match_trigger(std::vector<int> &trigIndices,
+                    const trigger::TriggerObjectCollection &trigObjs,
+                    const trigger::TriggerEvent &triggerEvent,
+                    const reco::Muon &mu);
+    void fillTree();
+    void makeTree();
+    
+    template <typename T> edm::Handle<T> make_handle(T *t) {
+        return edm::Handle<T>();
+    }
+
+    // ---------- Member data ---------------------------
+
+    const edm::InputTag RecoMuonTag_;
+    const std::string outFileName_;
+    int verbose_;
+
+    bool useRecoMuons_;
+    bool useEventInfo_;
+    bool debug_;
+
+    // trig matching
+    std::vector<std::string> isoTriggerNames_;
+    std::vector<std::string> triggerNames_;
+
+    // Tokens
+    edm::EDGetTokenT<reco::MuonCollection> RecoMuonToken_;
+    edm::EDGetTokenT<edm::TriggerResults> TriggerResultsToken_;
+    edm::EDGetTokenT<trigger::TriggerEvent> TriggerSummaryLabelsToken_;
+    edm::EDGetTokenT<reco::VertexCollection> VerticesToken_;
+    edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> theBFieldToken_;
+
+    double triggerMaxDeltaR_;
+    bool triggerMatching_;
+    std::string triggerProcessLabel_;
+    std::vector<int> isoTriggerIndices_;
+    std::vector<int> triggerIndices_;
+    HLTConfigProvider hltConfig_;
+
+    const PropagateToMuonSetup muPropagatorSetup1st_;
+    const PropagateToMuonSetup muPropagatorSetup2nd_;
+
+    PropagateToMuon muPropagator1st_;
+    PropagateToMuon muPropagator2nd_;
+
+    const reco::MuonCollection *RecoMuons_;
+    const edm::TriggerResults *TriggerResults_;
+    const trigger::TriggerEvent *TriggerSummaryLabels_;
+    const reco::VertexCollection *Vertices_;
+
+    // TTree
+    TTree *tree;
+    bool firstEvent_;
+
+    // Output collections
+
+    // Event info
+    unsigned long eventInfo_event;
+    unsigned long eventInfo_run;
+    unsigned long eventInfo_lumi;
+    unsigned long eventInfo_bx;
+    int eventInfo_npv;
+    int eventInfo_nvtx;
+
+    // Reco muon info
+    std::unique_ptr<int32_t> recoMuon_size;
+    std::unique_ptr<std::vector<float>> recoMuon_e;
+    std::unique_ptr<std::vector<float>> recoMuon_et;
+    std::unique_ptr<std::vector<float>> recoMuon_pt;
+    std::unique_ptr<std::vector<float>> recoMuon_eta;
+    std::unique_ptr<std::vector<float>> recoMuon_phi;
+    std::unique_ptr<std::vector<float>> recoMuon_dxy;
+    std::unique_ptr<std::vector<float>> recoMuon_dz;
+    std::unique_ptr<std::vector<bool>> recoMuon_isLooseMuon;
+    std::unique_ptr<std::vector<bool>> recoMuon_isMediumMuon;
+    std::unique_ptr<std::vector<bool>> recoMuon_isTightMuon;
+    std::unique_ptr<std::vector<float>> recoMuon_iso;
+    std::unique_ptr<std::vector<short>> recoMuon_hlt_isomu;
+    std::unique_ptr<std::vector<short>> recoMuon_hlt_mu;
+    std::unique_ptr<std::vector<float>> recoMuon_hlt_isoDeltaR;
+    std::unique_ptr<std::vector<float>> recoMuon_hlt_deltaR;
+    std::unique_ptr<std::vector<int>> recoMuon_passesSingleMuon;
+    std::unique_ptr<std::vector<int>> recoMuon_charge;
+    std::unique_ptr<std::vector<float>> recoMuon_etaSt1;
+    std::unique_ptr<std::vector<float>> recoMuon_phiSt1;
+    std::unique_ptr<std::vector<float>> recoMuon_etaSt2;
+    std::unique_ptr<std::vector<float>> recoMuon_phiSt2;
+
+    // Trigger flags
+    std::unique_ptr<bool> HLT_IsoMu24;
+    std::unique_ptr<bool> HLT_Mu50_L1SingleMuShower;
+    std::unique_ptr<bool> HLT_Mu50;
+};

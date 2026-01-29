@@ -2,6 +2,7 @@ import FWCore.ParameterSet.Config as cms
 
 process = cms.Process("L1TMuonAnalysis")
 
+
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.load("Configuration.StandardSequences.GeometryDB_cff")
 process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
@@ -10,10 +11,9 @@ process.load('Configuration.StandardSequences.Reconstruction_cff')
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
-
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000))
 #process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(23374) )  
 
 from PhysicsTools.PatAlgos.tools.helpers import getPatAlgosToolsTask
@@ -25,7 +25,9 @@ process.source = cms.Source("PoolSource",
 
 #'/store/data/Run2022C/Muon/AOD/16Jun2023-v1/2830000/00dbf34d-d9f9-4d0a-a035-13d3547707a4.root'
 #'/store/data/Run2024I/Cosmics/AOD/PromptReco-v1/000/386/455/00000/56bcb0a3-721e-4868-9ef3-4b2940882b3e.root'
-'/store/data/Run2024F/Cosmics/AOD/PromptReco-v1/000/381/968/00000/4c28b0c6-e734-40db-b97a-74579c4f71fa.root'
+# '/store/data/Run2024F/Cosmics/AOD/PromptReco-v1/000/381/968/00000/4c28b0c6-e734-40db-b97a-74579c4f71fa.root'
+# '/store/data/Run2025G/Cosmics/AOD/PromptReco-v1/000/398/024/00000/5ca439b9-e27d-40e8-a5dc-560f14c0d7a2.root'
+'/store/data/Run2025G/Muon1/AOD/PromptReco-v1/000/398/902/00000/0e7237e0-726f-4c15-b923-b2d80c308196.root'
                                 )
 )
 
@@ -62,7 +64,7 @@ process.options = cms.untracked.PSet(
 
 
 
-process.TFileService = cms.Service("TFileService", fileName = cms.string("l1tMuonNtuple_not.root") )
+process.TFileService = cms.Service("TFileService", fileName = cms.string("l1tMuonNtuple.root") )
 
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.GlobalTag.globaltag="124X_dataRun3_v9"
@@ -78,8 +80,13 @@ process.endjob_step = cms.EndPath(process.endOfProcess)
 # process.source.lumisToProcess.extend(myLumis)
 # JSONfile = 'Cert_271036-284044_13TeV_ReReco_07Aug2017_Collisions16_JSON.txt'
 
-process.load('MuonAODAnalyzer.MuonAODAnalyzer.MuonAODAnalyzer_cfi')
+process.load('EMTFTools.EMTFNtuple.EMTFNtuple_cfi')
 
-process.analysis_step = cms.Path(process.MuonAODAnalyzer)
+process.analysis_step = cms.Path(process.EMTFNtuple)
 
 process.schedule = cms.Schedule(process.analysis_step, process.endjob_step)
+
+# Add early deletion of temporary data products to reduce peak memory need
+from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEarlyDelete
+process = customiseEarlyDelete(process)
+# End adding early deletion
