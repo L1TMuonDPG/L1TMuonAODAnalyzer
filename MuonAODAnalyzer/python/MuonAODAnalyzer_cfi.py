@@ -4,11 +4,11 @@ MuonAODAnalyzer = cms.EDAnalyzer('MuonAODAnalyzer',
 
     debug            = cms.bool(True),
     verbosity        = cms.untracked.int32(0),
-    outFileName      = cms.string('EMTFNtuple.root'),
+    outFileName      = cms.string('L1TMuonNtuple.root'),
 
     # Input Tags for Reco, Trigger, and Vertices
     RecoMuonTag      = cms.InputTag('muons'),
-    Triggers = cms.InputTag("TriggerResults::HLT"),
+    Triggers         = cms.InputTag("TriggerResults::HLT"),
     
     # Flags to enable processing
     useRecoMuons     = cms.bool(True),
