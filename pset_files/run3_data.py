@@ -66,7 +66,7 @@ process.options = cms.untracked.PSet(
 
 
 
-process.TFileService = cms.Service("TFileService", fileName = cms.string("l1tMuonNtuple_2025_new_trg.root") )
+process.TFileService = cms.Service("TFileService", fileName = cms.string("l1tMuonNtuple_2025_new_trg_test.root") )
 
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.GlobalTag.globaltag="124X_dataRun3_v9"
@@ -87,3 +87,8 @@ process.load('L1TMuonAODAnalyzer.MuonAODAnalyzer.MuonAODAnalyzer_cfi')
 process.analysis_step = cms.Path(process.MuonAODAnalyzer)
 
 process.schedule = cms.Schedule(process.analysis_step, process.endjob_step)
+
+# Add early deletion of temporary data products to reduce peak memory need
+from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEarlyDelete
+process = customiseEarlyDelete(process)
+# End adding early deletion
