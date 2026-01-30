@@ -72,17 +72,17 @@ void MuonAODAnalyzer::analyze(const edm::Event &iEvent,
     // Reco muons
     if (useRecoMuons_ && RecoMuons_ != nullptr) {
         for (const auto &muon : *RecoMuons_) {
-            recoMuon_e->push_back(muon.energy());
-            recoMuon_et->push_back(muon.et());
-            recoMuon_pt->push_back(muon.pt());
-            recoMuon_eta->push_back(muon.eta());
-            recoMuon_phi->push_back(muon.phi());
-            recoMuon_charge->push_back(muon.charge());
+            muon_e->push_back(muon.energy());
+            muon_et->push_back(muon.et());
+            muon_pt->push_back(muon.pt());
+            muon_eta->push_back(muon.eta());
+            muon_phi->push_back(muon.phi());
+            muon_charge->push_back(muon.charge());
 
             if (Vertices_ != nullptr && !Vertices_->empty()){
                 if( !(muon.muonBestTrack().isNull())){
-                    recoMuon_dz->push_back( muon.muonBestTrack()->dz((*Vertices_)[0].position()));
-                    recoMuon_dxy->push_back( muon.muonBestTrack()->dxy((*Vertices_)[0].position()));
+                    muon_dz->push_back( muon.muonBestTrack()->dz((*Vertices_)[0].position()));
+                    muon_dxy->push_back( muon.muonBestTrack()->dxy((*Vertices_)[0].position()));
                 }
             }
 
@@ -103,16 +103,16 @@ void MuonAODAnalyzer::analyze(const edm::Event &iEvent,
                     muon.innerTrack()->hitPattern().trackerLayersWithMeasurement() > 5 &&
                     muon.globalTrack()->normalizedChi2() < 1;
             }
-            recoMuon_isLooseMuon->push_back(isLoose);
-            recoMuon_isMediumMuon->push_back(isMedium);
-            recoMuon_isTightMuon->push_back(isTight);
+            muon_isLooseMuon->push_back(isLoose);
+            muon_isMediumMuon->push_back(isMedium);
+            muon_isTightMuon->push_back(isTight);
 
             double iso = (muon.pfIsolationR04().sumChargedHadronPt +
                 std::max(0.,
                     muon.pfIsolationR04().sumNeutralHadronEt + muon.pfIsolationR04().sumPhotonEt -
                         0.5 * muon.pfIsolationR04().sumPUPt)) /
                 muon.pt();
-            recoMuon_iso->push_back(iso);
+            muon_iso->push_back(iso);
 
             if (triggerMatching_) {
                 std::cout<<"Trigger matching started for a muon"<<std::endl;
@@ -154,40 +154,40 @@ void MuonAODAnalyzer::analyze(const edm::Event &iEvent,
                     } 
                 } 
 
-                recoMuon_hlt_isomu->push_back(hasIsoTriggered);
-                recoMuon_hlt_mu->push_back(hasTriggered);
-                recoMuon_hlt_isoDeltaR->push_back(isoMatchDeltaR);
-                recoMuon_hlt_deltaR->push_back(matchDeltaR);
-                recoMuon_passesSingleMuon->push_back(passesSingleMuonFlag);
+                muon_hlt_isomu->push_back(hasIsoTriggered);
+                muon_hlt_mu->push_back(hasTriggered);
+                muon_hlt_isoDeltaR->push_back(isoMatchDeltaR);
+                muon_hlt_deltaR->push_back(matchDeltaR);
+                muon_passesSingleMuon->push_back(passesSingleMuonFlag);
             } else {
-                recoMuon_hlt_isomu->push_back(-999);
-                recoMuon_hlt_mu->push_back(-999);
-                recoMuon_hlt_isoDeltaR->push_back(-999);
-                recoMuon_hlt_deltaR->push_back(-999);
-                recoMuon_passesSingleMuon->push_back(-999);
+                muon_hlt_isomu->push_back(-999);
+                muon_hlt_mu->push_back(-999);
+                muon_hlt_isoDeltaR->push_back(-999);
+                muon_hlt_deltaR->push_back(-999);
+                muon_passesSingleMuon->push_back(-999);
             }
 
             // extrapolation of track coordinates
             TrajectoryStateOnSurface stateAtMuSt1 = muPropagator1st_.extrapolate(muon);
             if (stateAtMuSt1.isValid()) {
-                recoMuon_etaSt1->push_back(stateAtMuSt1.globalPosition().eta());
-                recoMuon_phiSt1->push_back(stateAtMuSt1.globalPosition().phi());
+                muon_etaSt1->push_back(stateAtMuSt1.globalPosition().eta());
+                muon_phiSt1->push_back(stateAtMuSt1.globalPosition().phi());
             } else {
-                recoMuon_etaSt1->push_back(-9999);
-                recoMuon_phiSt1->push_back(-9999);
+                muon_etaSt1->push_back(-9999);
+                muon_phiSt1->push_back(-9999);
             }
 
             TrajectoryStateOnSurface stateAtMuSt2 = muPropagator2nd_.extrapolate(muon);
             if (stateAtMuSt2.isValid()) {
-                recoMuon_etaSt2->push_back(stateAtMuSt2.globalPosition().eta());
-                recoMuon_phiSt2->push_back(stateAtMuSt2.globalPosition().phi());
+                muon_etaSt2->push_back(stateAtMuSt2.globalPosition().eta());
+                muon_phiSt2->push_back(stateAtMuSt2.globalPosition().phi());
             } else {
-                recoMuon_etaSt2->push_back(-9999);
-                recoMuon_phiSt2->push_back(-9999);
+                muon_etaSt2->push_back(-9999);
+                muon_phiSt2->push_back(-9999);
             }
 
         }
-        (*recoMuon_size) = RecoMuons_->size();
+        (*muon_size) = RecoMuons_->size();
     }
 
     // Trigger Results - specific flags
@@ -345,21 +345,21 @@ void MuonAODAnalyzer::getHandles(const edm::Event &iEvent,
         std::cout << "******* Getting Handles *******" << std::endl;
 
     // reco muons
-    auto RecoMuon_handle = make_handle(RecoMuons_);
+    auto muon_handle = make_handle(RecoMuons_);
     auto Vertices_handle = make_handle(Vertices_);
     auto TriggerResults_handle = make_handle(TriggerResults_);
     auto TriggerSummaryLabels_handle = make_handle(TriggerSummaryLabels_);
 
     if (useRecoMuons_) {
         if (!RecoMuonToken_.isUninitialized()) {
-            iEvent.getByToken(RecoMuonToken_, RecoMuon_handle);
+            iEvent.getByToken(RecoMuonToken_, muon_handle);
         }
-        if (!RecoMuon_handle.isValid()) {
+        if (!muon_handle.isValid()) {
             if (firstEvent_)
                 edm::LogError("NtupleMaker") << "Cannot get the product: " << RecoMuonTag_;
             RecoMuons_ = nullptr;
         } else {
-            RecoMuons_ = RecoMuon_handle.product();
+            RecoMuons_ = muon_handle.product();
         }
         
         if (!VerticesToken_.isUninitialized()) {
@@ -405,28 +405,28 @@ void MuonAODAnalyzer::makeTree() {
     tree = fs->make<TTree>("tree", "tree");
 
     // Reco muon info pointers
-    recoMuon_size = std::make_unique<int32_t>(0);
-    recoMuon_e = std::make_unique<std::vector<float>>();
-    recoMuon_et = std::make_unique<std::vector<float>>();
-    recoMuon_pt = std::make_unique<std::vector<float>>();
-    recoMuon_eta = std::make_unique<std::vector<float>>();
-    recoMuon_phi = std::make_unique<std::vector<float>>();
-    recoMuon_dxy = std::make_unique<std::vector<float>>();
-    recoMuon_dz = std::make_unique<std::vector<float>>();
-    recoMuon_isLooseMuon = std::make_unique<std::vector<bool>>();
-    recoMuon_isMediumMuon = std::make_unique<std::vector<bool>>();
-    recoMuon_isTightMuon = std::make_unique<std::vector<bool>>();
-    recoMuon_iso = std::make_unique<std::vector<float>>();
-    recoMuon_hlt_isomu = std::make_unique<std::vector<short>>();
-    recoMuon_hlt_mu = std::make_unique<std::vector<short>>();
-    recoMuon_hlt_isoDeltaR = std::make_unique<std::vector<float>>();
-    recoMuon_hlt_deltaR = std::make_unique<std::vector<float>>();
-    recoMuon_passesSingleMuon = std::make_unique<std::vector<int>>();
-    recoMuon_charge = std::make_unique<std::vector<int>>();
-    recoMuon_etaSt1 = std::make_unique<std::vector<float>>();
-    recoMuon_phiSt1 = std::make_unique<std::vector<float>>();
-    recoMuon_etaSt2 = std::make_unique<std::vector<float>>();
-    recoMuon_phiSt2 = std::make_unique<std::vector<float>>();
+    muon_size = std::make_unique<int32_t>(0);
+    muon_e = std::make_unique<std::vector<float>>();
+    muon_et = std::make_unique<std::vector<float>>();
+    muon_pt = std::make_unique<std::vector<float>>();
+    muon_eta = std::make_unique<std::vector<float>>();
+    muon_phi = std::make_unique<std::vector<float>>();
+    muon_dxy = std::make_unique<std::vector<float>>();
+    muon_dz = std::make_unique<std::vector<float>>();
+    muon_isLooseMuon = std::make_unique<std::vector<bool>>();
+    muon_isMediumMuon = std::make_unique<std::vector<bool>>();
+    muon_isTightMuon = std::make_unique<std::vector<bool>>();
+    muon_iso = std::make_unique<std::vector<float>>();
+    muon_hlt_isomu = std::make_unique<std::vector<short>>();
+    muon_hlt_mu = std::make_unique<std::vector<short>>();
+    muon_hlt_isoDeltaR = std::make_unique<std::vector<float>>();
+    muon_hlt_deltaR = std::make_unique<std::vector<float>>();
+    muon_passesSingleMuon = std::make_unique<std::vector<int>>();
+    muon_charge = std::make_unique<std::vector<int>>();
+    muon_etaSt1 = std::make_unique<std::vector<float>>();
+    muon_phiSt1 = std::make_unique<std::vector<float>>();
+    muon_etaSt2 = std::make_unique<std::vector<float>>();
+    muon_phiSt2 = std::make_unique<std::vector<float>>();
 
     // Trigger flags pointers
     HLT_IsoMu24 = std::make_unique<bool>();
@@ -445,28 +445,28 @@ void MuonAODAnalyzer::makeTree() {
 
     // Reco muons
     if (useRecoMuons_) {
-        tree->Branch("recoMuon_size", &(*recoMuon_size));
-        tree->Branch("recoMuon_e", &(*recoMuon_e));
-        tree->Branch("recoMuon_et", &(*recoMuon_et));
-        tree->Branch("recoMuon_pt", &(*recoMuon_pt));
-        tree->Branch("recoMuon_eta", &(*recoMuon_eta));
-        tree->Branch("recoMuon_phi", &(*recoMuon_phi));
-        tree->Branch("recoMuon_dxy", &(*recoMuon_dxy));
-        tree->Branch("recoMuon_dz", &(*recoMuon_dz));
-        tree->Branch("recoMuon_isLooseMuon", &(*recoMuon_isLooseMuon));
-        tree->Branch("recoMuon_isMediumMuon", &(*recoMuon_isMediumMuon));
-        tree->Branch("recoMuon_isTightMuon", &(*recoMuon_isTightMuon));
-        tree->Branch("recoMuon_iso", &(*recoMuon_iso));
-        tree->Branch("recoMuon_hlt_isomu", &(*recoMuon_hlt_isomu));
-        tree->Branch("recoMuon_hlt_mu", &(*recoMuon_hlt_mu));
-        tree->Branch("recoMuon_hlt_isoDeltaR", &(*recoMuon_hlt_isoDeltaR));
-        tree->Branch("recoMuon_hlt_deltaR", &(*recoMuon_hlt_deltaR));
-        tree->Branch("recoMuon_passesSingleMuon", &(*recoMuon_passesSingleMuon));
-        tree->Branch("recoMuon_charge", &(*recoMuon_charge));
-        tree->Branch("recoMuon_etaSt1", &(*recoMuon_etaSt1));
-        tree->Branch("recoMuon_phiSt1", &(*recoMuon_phiSt1));
-        tree->Branch("recoMuon_etaSt2", &(*recoMuon_etaSt2));
-        tree->Branch("recoMuon_phiSt2", &(*recoMuon_phiSt2));
+        tree->Branch("muon_size", &(*muon_size));
+        tree->Branch("muon_e", &(*muon_e));
+        tree->Branch("muon_et", &(*muon_et));
+        tree->Branch("muon_pt", &(*muon_pt));
+        tree->Branch("muon_eta", &(*muon_eta));
+        tree->Branch("muon_phi", &(*muon_phi));
+        tree->Branch("muon_dxy", &(*muon_dxy));
+        tree->Branch("muon_dz", &(*muon_dz));
+        tree->Branch("muon_isLooseMuon", &(*muon_isLooseMuon));
+        tree->Branch("muon_isMediumMuon", &(*muon_isMediumMuon));
+        tree->Branch("muon_isTightMuon", &(*muon_isTightMuon));
+        tree->Branch("muon_iso", &(*muon_iso));
+        tree->Branch("muon_hlt_isomu", &(*muon_hlt_isomu));
+        tree->Branch("muon_hlt_mu", &(*muon_hlt_mu));
+        tree->Branch("muon_hlt_isoDeltaR", &(*muon_hlt_isoDeltaR));
+        tree->Branch("muon_hlt_deltaR", &(*muon_hlt_deltaR));
+        tree->Branch("muon_passesSingleMuon", &(*muon_passesSingleMuon));
+        tree->Branch("muon_charge", &(*muon_charge));
+        tree->Branch("muon_etaSt1", &(*muon_etaSt1));
+        tree->Branch("muon_phiSt1", &(*muon_phiSt1));
+        tree->Branch("muon_etaSt2", &(*muon_etaSt2));
+        tree->Branch("muon_phiSt2", &(*muon_phiSt2));
     }
 
     tree->Branch("HLT_IsoMu24", &(*HLT_IsoMu24));
@@ -489,28 +489,28 @@ void MuonAODAnalyzer::fillTree() {
     eventInfo_bx = 0;
 
     // Clear Reco Muons
-    (*recoMuon_size) = 0;
-    recoMuon_e->clear();
-    recoMuon_et->clear();
-    recoMuon_pt->clear();
-    recoMuon_eta->clear();
-    recoMuon_phi->clear();
-    recoMuon_dxy->clear();
-    recoMuon_dz->clear();
-    recoMuon_isLooseMuon->clear();
-    recoMuon_isMediumMuon->clear();
-    recoMuon_isTightMuon->clear();
-    recoMuon_iso->clear();
-    recoMuon_hlt_isomu->clear();
-    recoMuon_hlt_mu->clear();
-    recoMuon_hlt_isoDeltaR->clear();
-    recoMuon_hlt_deltaR->clear();
-    recoMuon_passesSingleMuon->clear();
-    recoMuon_charge->clear();
-    recoMuon_etaSt1->clear();
-    recoMuon_phiSt1->clear();
-    recoMuon_etaSt2->clear();
-    recoMuon_phiSt2->clear();
+    (*muon_size) = 0;
+    muon_e->clear();
+    muon_et->clear();
+    muon_pt->clear();
+    muon_eta->clear();
+    muon_phi->clear();
+    muon_dxy->clear();
+    muon_dz->clear();
+    muon_isLooseMuon->clear();
+    muon_isMediumMuon->clear();
+    muon_isTightMuon->clear();
+    muon_iso->clear();
+    muon_hlt_isomu->clear();
+    muon_hlt_mu->clear();
+    muon_hlt_isoDeltaR->clear();
+    muon_hlt_deltaR->clear();
+    muon_passesSingleMuon->clear();
+    muon_charge->clear();
+    muon_etaSt1->clear();
+    muon_phiSt1->clear();
+    muon_etaSt2->clear();
+    muon_phiSt2->clear();
 
     // Clear flags
     (*HLT_IsoMu24) = false;
