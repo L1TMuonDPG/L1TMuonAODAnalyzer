@@ -115,7 +115,6 @@ void MuonAODAnalyzer::analyze(const edm::Event &iEvent,
             muon_iso->push_back(iso);
 
             if (triggerMatching_) {
-                std::cout<<"Trigger matching started for a muon"<<std::endl;
                 double isoMatchDeltaR = 9999.;
                 double matchDeltaR = 9999.;
                 int hasIsoTriggered = 0;
@@ -124,10 +123,8 @@ void MuonAODAnalyzer::analyze(const edm::Event &iEvent,
 
                 // first check if the trigger results are valid:
                 if (TriggerResults_ != nullptr) {
-                    std::cout<<"Trigger results are valid"<<TriggerResults_<<std::endl;
                     if (TriggerSummaryLabels_ != nullptr) {
                         const edm::TriggerNames& trigNames = iEvent.triggerNames(*TriggerResults_);
-                        std::cout<<"TriggerSummaryLabels_ are valid"<<TriggerSummaryLabels_<<std::endl;
                         for (UInt_t iPath = 0; iPath < isoTriggerNames_.size(); ++iPath) {
                             if (passesSingleMuonFlag == 1)
                                 continue;
@@ -244,12 +241,9 @@ double MuonAODAnalyzer::match_trigger(std::vector<int> &trigIndices,
                                  const trigger::TriggerEvent &triggerEvent,
                                  const reco::Muon &mu) {
   double matchDeltaR = 9999;
-  std::cout<<"Trigger matching started"<<std::endl;
   for (size_t iTrigIndex = 0; iTrigIndex < trigIndices.size(); ++iTrigIndex) {
     int triggerIndex = trigIndices[iTrigIndex];
-    std::cout<<"Inside for loop, triggerIndex = "<<triggerIndex<<std::endl;
     if (triggerIndex >= (int)hltConfig_.size()) continue; // Safety check
-    std::cout<<"Safety check"<<std::endl;
     const std::vector<std::string> moduleLabels(hltConfig_.moduleLabels(triggerIndex));
     // find index of the last module:
     const unsigned moduleIndex = hltConfig_.size(triggerIndex) - 2;
@@ -260,15 +254,12 @@ double MuonAODAnalyzer::match_trigger(std::vector<int> &trigIndices,
     if (hltFilterIndex < triggerEvent.sizeFilters()) {
       const trigger::Keys triggerKeys(triggerEvent.filterKeys(hltFilterIndex));
       const trigger::Vids triggerVids(triggerEvent.filterIds(hltFilterIndex));
-      std::cout<<"Passed the hltfilterindex"<<std::endl;
       const unsigned nTriggers = triggerVids.size();
       for (size_t iTrig = 0; iTrig < nTriggers; ++iTrig) {
-        std::cout<<"Inside the second loop, iTrig = "<<iTrig<<"Number of Triggers ="<<nTriggers<<std::endl;
         // loop over all trigger objects:
         const trigger::TriggerObject trigObject = trigObjs[triggerKeys[iTrig]];
 
         double dRtmp = deltaR(mu, trigObject);
-        std::cout<<"Delta R calculated: "<<dRtmp<<std::endl;
         if (dRtmp < matchDeltaR) {
           matchDeltaR = dRtmp;
         }
