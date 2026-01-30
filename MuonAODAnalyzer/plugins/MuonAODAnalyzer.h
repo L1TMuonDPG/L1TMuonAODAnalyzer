@@ -152,28 +152,28 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources, e
     int eventInfo_nvtx;
 
     // Reco muon info
-    std::unique_ptr<int32_t> recoMuon_size;
-    std::unique_ptr<std::vector<float>> recoMuon_e;
-    std::unique_ptr<std::vector<float>> recoMuon_et;
-    std::unique_ptr<std::vector<float>> recoMuon_pt;
-    std::unique_ptr<std::vector<float>> recoMuon_eta;
-    std::unique_ptr<std::vector<float>> recoMuon_phi;
-    std::unique_ptr<std::vector<float>> recoMuon_dxy;
-    std::unique_ptr<std::vector<float>> recoMuon_dz;
-    std::unique_ptr<std::vector<bool>> recoMuon_isLooseMuon;
-    std::unique_ptr<std::vector<bool>> recoMuon_isMediumMuon;
-    std::unique_ptr<std::vector<bool>> recoMuon_isTightMuon;
-    std::unique_ptr<std::vector<float>> recoMuon_iso;
-    std::unique_ptr<std::vector<short>> recoMuon_hlt_isomu;
-    std::unique_ptr<std::vector<short>> recoMuon_hlt_mu;
-    std::unique_ptr<std::vector<float>> recoMuon_hlt_isoDeltaR;
-    std::unique_ptr<std::vector<float>> recoMuon_hlt_deltaR;
-    std::unique_ptr<std::vector<int>> recoMuon_passesSingleMuon;
-    std::unique_ptr<std::vector<int>> recoMuon_charge;
-    std::unique_ptr<std::vector<float>> recoMuon_etaSt1;
-    std::unique_ptr<std::vector<float>> recoMuon_phiSt1;
-    std::unique_ptr<std::vector<float>> recoMuon_etaSt2;
-    std::unique_ptr<std::vector<float>> recoMuon_phiSt2;
+    std::unique_ptr<int32_t> muon_size;
+    std::unique_ptr<std::vector<float>> muon_e;
+    std::unique_ptr<std::vector<float>> muon_et;
+    std::unique_ptr<std::vector<float>> muon_pt;
+    std::unique_ptr<std::vector<float>> muon_eta;
+    std::unique_ptr<std::vector<float>> muon_phi;
+    std::unique_ptr<std::vector<float>> muon_dxy;
+    std::unique_ptr<std::vector<float>> muon_dz;
+    std::unique_ptr<std::vector<bool>> muon_isLooseMuon;
+    std::unique_ptr<std::vector<bool>> muon_isMediumMuon;
+    std::unique_ptr<std::vector<bool>> muon_isTightMuon;
+    std::unique_ptr<std::vector<float>> muon_iso;
+    std::unique_ptr<std::vector<short>> muon_hlt_isomu;
+    std::unique_ptr<std::vector<short>> muon_hlt_mu;
+    std::unique_ptr<std::vector<float>> muon_hlt_isoDeltaR;
+    std::unique_ptr<std::vector<float>> muon_hlt_deltaR;
+    std::unique_ptr<std::vector<int>> muon_passesSingleMuon;
+    std::unique_ptr<std::vector<int>> muon_charge;
+    std::unique_ptr<std::vector<float>> muon_etaSt1;
+    std::unique_ptr<std::vector<float>> muon_phiSt1;
+    std::unique_ptr<std::vector<float>> muon_etaSt2;
+    std::unique_ptr<std::vector<float>> muon_phiSt2;
 
     // Trigger flags
     std::unique_ptr<bool> HLT_IsoMu24;
