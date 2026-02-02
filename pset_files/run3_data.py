@@ -27,7 +27,9 @@ process.source = cms.Source("PoolSource",
 #'/store/data/Run2024I/Cosmics/AOD/PromptReco-v1/000/386/455/00000/56bcb0a3-721e-4868-9ef3-4b2940882b3e.root'
 # '/store/data/Run2024F/Cosmics/AOD/PromptReco-v1/000/381/968/00000/4c28b0c6-e734-40db-b97a-74579c4f71fa.root'
 # '/store/data/Run2025G/Cosmics/AOD/PromptReco-v1/000/398/024/00000/5ca439b9-e27d-40e8-a5dc-560f14c0d7a2.root'
-'/store/data/Run2025G/Muon1/AOD/PromptReco-v1/000/398/902/00000/0e7237e0-726f-4c15-b923-b2d80c308196.root'
+# '/store/data/Run2025G/Muon1/AOD/PromptReco-v1/000/398/902/00000/0e7237e0-726f-4c15-b923-b2d80c308196.root'
+# '/store/data/Run2025G/JetMET1/AOD/PromptReco-v1/000/398/803/00000/14dcff10-2ffe-4852-ae04-3b15a1801751.root'
+'/store/data/Run2025G/JetMET1/AOD/PromptReco-v1/000/398/803/00000/5fe03aa8-1db3-4c81-9f1a-40c974aef9c3.root'
                                 )
 )
 
@@ -64,7 +66,7 @@ process.options = cms.untracked.PSet(
 
 
 
-process.TFileService = cms.Service("TFileService", fileName = cms.string("l1tMuonNtuple_2025.root") )
+process.TFileService = cms.Service("TFileService", fileName = cms.string("l1tMuonNtuple_2025_new_trg_test.root") )
 
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.GlobalTag.globaltag="124X_dataRun3_v9"
@@ -85,3 +87,8 @@ process.load('L1TMuonAODAnalyzer.MuonAODAnalyzer.MuonAODAnalyzer_cfi')
 process.analysis_step = cms.Path(process.MuonAODAnalyzer)
 
 process.schedule = cms.Schedule(process.analysis_step, process.endjob_step)
+
+# Add early deletion of temporary data products to reduce peak memory need
+from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEarlyDelete
+process = customiseEarlyDelete(process)
+# End adding early deletion

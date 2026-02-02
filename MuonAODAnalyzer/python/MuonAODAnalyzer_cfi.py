@@ -2,31 +2,28 @@ import FWCore.ParameterSet.Config as cms
 
 MuonAODAnalyzer = cms.EDAnalyzer('MuonAODAnalyzer',
 
-    Muons=cms.InputTag("muons"),
-    Vertices=cms.InputTag("offlinePrimaryVertices"),
-    Triggers = cms.InputTag("TriggerResults::HLT"),
+    debug            = cms.bool(True),
+    verbosity        = cms.untracked.int32(0),
+    outFileName      = cms.string('L1TMuonNtuple.root'),
+
+    # Input Tags for Reco, Trigger, and Vertices
+    RecoMuonTag      = cms.InputTag('muons'),
+    Triggers         = cms.InputTag("TriggerResults::HLT"),
     l1GtSrc = cms.InputTag("gtStage2Digis"),
-    DispMuons=cms.InputTag("displacedMuons"),
-    CosmicMuons=cms.InputTag("muonsFromCosmics"), 
-    CosmicMuons1Leg=cms.InputTag("muonsFromCosmics1Leg"),
+    
+    # Flags to enable processing
+    useRecoMuons     = cms.bool(True),
+    useEventInfo     = cms.bool(True),
 
-    MuonPtCut=cms.double(0),
-    IsMC=cms.bool(False),
-    SaveTree=cms.bool(True),
-    Debug=cms.bool(False),
-
+    # Trigger Names for matching and flags
     isoTriggerNames = cms.vstring(
+      "HLT_IsoMu24_v*",
       "HLT_IsoMu27_v*",
-      "HLT_IsoMu30_v*",
+      # "HLT_IsoMu30_v*",
     ),
     triggerNames = cms.vstring(
       "HLT_Mu50_v*",
       "HLT_Mu55_v*",
-      # pA triggers
-      # "HLT_PAL3Mu12_v*",
-      # "HLT_PAL3Mu15_v*",
-      # "HLT_PAL2Mu12_v*",
-      # "HLT_PAL2Mu15_v*",
     ),
 
     # muon track extrapolation to 1st station
@@ -34,7 +31,7 @@ MuonAODAnalyzer = cms.EDAnalyzer('MuonAODAnalyzer',
           useTrack = cms.string("tracker"),  # 'none' to use Candidate P4; or 'tracker', 'muon', 'global'
           useState = cms.string("atVertex"), # 'innermost' and 'outermost' require the TrackExtra
           useSimpleGeometry = cms.bool(True),
-    useStation2 = cms.bool(False),
+          useStation2 = cms.bool(False),
           fallbackToME1 = cms.bool(False),
           cosmicPropagationHypothesis = cms.bool(False),
           useMB2InOverlap = cms.bool(False),
@@ -55,5 +52,4 @@ MuonAODAnalyzer = cms.EDAnalyzer('MuonAODAnalyzer',
           propagatorAny = cms.ESInputTag("", "SteppingHelixPropagatorAny"),
           propagatorOpposite = cms.ESInputTag("", "SteppingHelixPropagatorOpposite")
     ),
-
 )

@@ -17,143 +17,125 @@
 //
 
 // system include files
-#include <map>
-#include <memory>
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <iostream>
-#include <fstream>
+#include <memory>
 #include <string>
-#include <utility>
+#include <vector>
 
 // ROOT includes
-#include "TLorentzVector.h"
 #include "TFile.h"
-#include "TDirectory.h"
-#include "TTree.h"
 #include "TMath.h"
-#include "TRegexp.h"
 #include "TString.h"
-#include <fmt/printf.h>
+#include "TTree.h"
+#include "TRegexp.h"
 
-// user include files
+// CMSSW includes
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
-
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
-
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/InputTag.h"
-#include "FWCore/Common/interface/TriggerNames.h"
-#include "CommonTools/UtilAlgos/interface/TFileService.h"
-#include "FWCore/ServiceRegistry/interface/Service.h"
-#include "CondFormats/DataRecord/interface/L1TUtmTriggerMenuRcd.h"
-#include "CondFormats/L1TObjects/interface/L1TUtmTriggerMenu.h"
 
-
-// Data formats
-#include "DataFormats/TrackReco/interface/Track.h"
-#include "DataFormats/TrackReco/interface/TrackFwd.h"
-#include "DataFormats/L1Trigger/interface/Muon.h"
-#include "DataFormats/L1Trigger/interface/BXVector.h"
-#include "DataFormats/Common/interface/TriggerResults.h"
-#include "DataFormats/PatCandidates/interface/PackedCandidate.h"
-#include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
+// reco muons
+#include "DataFormats/MuonReco/interface/Muon.h"
 #include "DataFormats/PatCandidates/interface/Muon.h"
-#include "DataFormats/VertexReco/interface/Vertex.h"
-#include "DataFormats/VertexReco/interface/VertexFwd.h"
-#include "DataFormats/L1TGlobal/interface/GlobalAlgBlk.h"
-#include "DataFormats/L1TGlobal/interface/GlobalExtBlk.h"
-#include "DataFormats/L1TMuon/interface/RegionalMuonCand.h"
-#include "DataFormats/CSCRecHit/interface/CSCSegmentCollection.h"
-#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
-#include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
-#include "Geometry/CSCGeometry/interface/CSCChamber.h"
-#include "Geometry/CSCGeometry/interface/CSCGeometry.h"
-#include "Geometry/Records/interface/MuonGeometryRecord.h"
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
 #include "DataFormats/MuonReco/interface/MuonEnergy.h"
 #include "DataFormats/MuonReco/interface/MuonTime.h"
+#include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/TrackReco/interface/TrackFwd.h"
+
+//l1 muons
+#include "DataFormats/L1TGlobal/interface/GlobalAlgBlk.h"
+#include "DataFormats/L1TGlobal/interface/GlobalExtBlk.h"
+#include "DataFormats/L1TMuon/interface/RegionalMuonCand.h"
+#include "DataFormats/L1Trigger/interface/Muon.h"
+#include "DataFormats/L1Trigger/interface/BXVector.h"
+#include "DataFormats/PatCandidates/interface/PackedCandidate.h"
+#include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
+
+// trigger info
 #include "DataFormats/Math/interface/deltaR.h"
 #include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
 #include "DataFormats/HLTReco/interface/TriggerEvent.h"
 #include "DataFormats/HLTReco/interface/TriggerObject.h"
+#include "FWCore/Common/interface/TriggerNames.h"
 
-// Information about stations
-#include "DataFormats/MuonReco/interface/Muon.h"
+// vertex
+#include "DataFormats/VertexReco/interface/Vertex.h"
+#include "DataFormats/VertexReco/interface/VertexFwd.h"
 
-// muon track extrapolation
+// track extrapolation
 #include "MuonAnalysis/MuonAssociators/interface/PropagateToMuonSetup.h"
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
-#include "CondFormats/AlignmentRecord/interface/TrackerSurfaceDeformationRcd.h"
-#include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
 #include "DataFormats/GeometryVector/interface/GlobalVector.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
-#include "TrackingTools/TrajectoryState/interface/FreeTrajectoryState.h"
 #include "MagneticField/Engine/interface/MagneticField.h"
 
-#include "L1Trigger/L1TMuon/interface/GeometryTranslator.h"
-#include "L1Trigger/L1TMuonEndCap/interface/Common.h"
-#include "L1Trigger/L1TMuonEndCap/interface/EMTFSubsystemCollector.h"
-#include "L1Trigger/L1TMuonEndCap/interface/TrackTools.h"
-#include "L1Trigger/L1TMuonEndCap/interface/DebugTools.h"
+#include <fstream>
+#include "TLorentzVector.h"
+#include "TDirectory.h"
+#include <fmt/printf.h>
 
+#include "CondFormats/DataRecord/interface/L1TUtmTriggerMenuRcd.h"
+#include "CondFormats/L1TObjects/interface/L1TUtmTriggerMenu.h"
 
-//
-// class declaration
-//
-
-// If the analyzer does not use TFileService, please remove
-// the template argument to the base class so the class inherits
-// from  edm::one::EDAnalyzer<>
-// This will improve performance in multithreaded jobs.
-using namespace edm;
-// using namespace std;
-using namespace reco;
-
-
-class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
+class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources, edm::one::WatchRuns> {
   public:
-    explicit MuonAODAnalyzer(const edm::ParameterSet&);
-    ~MuonAODAnalyzer() override;
+    explicit MuonAODAnalyzer(const edm::ParameterSet &);
+    ~MuonAODAnalyzer();
+
+    static void fillDescriptions(edm::ConfigurationDescriptions &descriptions);
 
   private:
     void beginJob() override;
-    void beginRun(const edm::Run &, const edm::EventSetup &);
-    void analyze(const edm::Event&, const edm::EventSetup&) override;
+    void beginRun(const edm::Run &, const edm::EventSetup &) override;
+    void analyze(const edm::Event &, const edm::EventSetup &) override;
     void endJob() override;
-    // void beginRun(const edm::Run&, const edm::EventSetup&);
-    // void endRun(const edm::Run&, const edm::EventSetup&);
-    virtual void InitandClearStuff();
+    void endRun(const edm::Run &, const edm::EventSetup &) override;
 
+    // Aux functions
+    void getHandles(const edm::Event &iEvent, const edm::EventSetup &iSetup);
     double match_trigger(std::vector<int> &trigIndices,
                     const trigger::TriggerObjectCollection &trigObjs,
                     const trigger::TriggerEvent &triggerEvent,
                     const reco::Muon &mu);
-    // void fillTree();
-    // void makeTree();
+    void fillTree();
+    void makeTree();
+    
+    template <typename T> edm::Handle<T> make_handle(T *t) {
+        return edm::Handle<T>();
+    }
 
-    // ----------member data ---------------------------
-    edm::EDGetTokenT<std::vector< reco::Muon> > muonToken_;
+    // ---------- Member data ---------------------------
+
+    const edm::InputTag RecoMuonTag_;
+    const std::string outFileName_;
+    int verbose_;
+
+    bool useRecoMuons_;
+    bool useEventInfo_;
+    bool debug_;
+
+    // trig matching
+    std::vector<std::string> isoTriggerNames_;
+    std::vector<std::string> triggerNames_;
+
+    // Tokens
+    edm::EDGetTokenT<reco::MuonCollection> RecoMuonToken_;
     edm::EDGetTokenT<l1t::MuonBxCollection>l1MuonToken_;
-    edm::EDGetTokenT<BXVector<l1t::RegionalMuonCand>> l1BMTFRegionalMuonCandToken_;
-    edm::EDGetTokenT<std::vector<Vertex> > verticesToken_;
-    edm::EDGetTokenT<edm::TriggerResults> trgresultsToken_;
+    edm::EDGetTokenT<edm::TriggerResults> TriggerResultsToken_;
     edm::EDGetTokenT<trigger::TriggerEvent> TriggerSummaryLabelsToken_;
-    // edm::Handle<edm::TriggerResults> IsoTriggerToken_;
-    // edm::Handle<std::vector<std::string>> IsoTriggerNamesToken_;
-    edm::EDGetTokenT<GlobalExtBlkBxCollection> UnprefirableEventToken_;
-    // edm::EDGetTokenT<BXVector<GlobalAlgBlk>> l1GtToken_;
-
-    edm::EDGetTokenT<std::vector< reco::Muon> > dispMuonToken_;
-    edm::EDGetTokenT<std::vector< reco::Muon> > CosmicMuonToken_;
-    edm::EDGetTokenT<std::vector< reco::Muon> > CosmicMuon1LegToken_;
-
-    Float_t MuonPtCut_;
-    Bool_t SaveTree_, IsMC_, Debug_;
+    edm::EDGetTokenT<reco::VertexCollection> VerticesToken_;
+    edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> theBFieldToken_;
 
     double triggerMaxDeltaR_;
     bool triggerMatching_;
@@ -168,81 +150,66 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     PropagateToMuon muPropagator1st_;
     PropagateToMuon muPropagator2nd_;
 
+    const reco::MuonCollection *RecoMuons_;
     const edm::TriggerResults *TriggerResults_;
     const trigger::TriggerEvent *TriggerSummaryLabels_;
+    const reco::VertexCollection *Vertices_;
 
-    std::vector<std::string> isoTriggerNames_;
-    std::vector<std::string> triggerNames_;
+    // TTree
+    TTree *tree;
+    bool firstEvent_;
 
-    TTree* outputTree;
+    // Output collections
 
-    unsigned long _eventNb;
-    unsigned long _runNb;
-    unsigned long _lumiBlock;
-    unsigned long _bx;
+    // Event info
+    unsigned long eventInfo_event;
+    unsigned long eventInfo_run;
+    unsigned long eventInfo_lumi;
+    unsigned long eventInfo_bx;
+    int eventInfo_npv;
+    int eventInfo_nvtx;
 
-    //Nb of primary vertices
-    int _n_PV;
-    // Float_t _LV_x,_LV_y,_LV_z;
-    // Float_t _LV_errx,_LV_erry,_LV_errz;
-    // Float_t _PUV1_x,_PUV1_y,_PUV1_z;
-    int trueNVtx;
-
-    GlobalAlgBlk const *results_;
-    unsigned long long cache_id_;
-
-    //MINIAOD original MET filters decisions
-    bool Flag_goodVertices;
-    bool Flag_globalTightHalo2016Filter;
-    bool Flag_globalSuperTightHalo2016Filter;
-    bool Flag_BadPFMuonFilter;
-    bool Flag_BadPFMuonDzFilter;
-
-    //Muons
-    vector<Float_t>  muon_eta;
-    vector<Float_t>  muon_etaAtSt1;
-    vector<Float_t>  muon_etaAtSt2;
-    vector<Float_t>  muon_phi;
-    vector<Float_t>  muon_phiAtSt1;
-    vector<Float_t>  muon_phiAtSt2;
-    vector<Float_t>  muon_pt;
-    vector<Float_t>  muon_ptCorr;
-    vector <int>     muon_charge;
-    vector<Float_t>  muon_dz;
-    vector<Float_t>  muon_dzError;
-    vector<Float_t>  muon_dxy;
-    vector<Float_t>  muon_dxyError;
-    vector<Float_t>  muon_3dIP;
-    vector<Float_t>  muon_3dIPError;
-    vector<Bool_t>  muon_PassTightID;
-    vector<Bool_t>  muon_PassLooseID;
-    vector<Bool_t> muon_isSAMuon;
-    vector<Bool_t> muon_isGlobalMuon;
-    vector<Bool_t> muon_isTrackerMuon;
-    vector<Bool_t> muon_isPFMuon;
-    vector<Bool_t> muon_hasInnerTrack;
-    vector<int> muon_hlt_isomu;
-    vector<int> muon_hlt_mu;
-    vector<Float_t> muon_hlt_isoDeltaR;
-    vector<Float_t> muon_hlt_deltaR;
-    vector<int> muon_passesSingleMuon;
-
-    vector<Float_t> muon_vx;
-    vector<Float_t> muon_vy;
-    vector<Float_t> muon_vz;
-    vector<Float_t> muon_px;
-    vector<Float_t> muon_py;
-    vector<Float_t> muon_pz;
-
-    vector<int> muon_nChambers;
-    vector<int> muon_nChambersCSCorDT;
-    vector<int> muon_nMatches;
-    vector<int> muon_nMatchedStations;
-    vector<unsigned int> muon_expectedNumberOfMatchedStations;
-    vector<unsigned int> muon_stationMask;
-    vector<int> muon_nMatchedRPCLayers;
-    vector<unsigned int> muon_RPClayerMask;
-    int muon_size;
+    // Reco muon info
+    std::unique_ptr<int32_t> muon_size;
+    std::unique_ptr<std::vector<float>> muon_e;
+    std::unique_ptr<std::vector<float>> muon_et;
+    std::unique_ptr<std::vector<float>> muon_pt;
+    std::unique_ptr<std::vector<float>> muon_eta;
+    std::unique_ptr<std::vector<float>> muon_phi;
+    std::unique_ptr<std::vector<float>> muon_dxy;
+    std::unique_ptr<std::vector<float>> muon_dz;
+    std::unique_ptr<std::vector<bool>> muon_isLooseMuon;
+    std::unique_ptr<std::vector<bool>> muon_isMediumMuon;
+    std::unique_ptr<std::vector<bool>> muon_isTightMuon;
+    std::unique_ptr<std::vector<float>> muon_iso;
+    std::unique_ptr<std::vector<short>> muon_hlt_isomu;
+    std::unique_ptr<std::vector<short>> muon_hlt_mu;
+    std::unique_ptr<std::vector<float>> muon_hlt_isoDeltaR;
+    std::unique_ptr<std::vector<float>> muon_hlt_deltaR;
+    std::unique_ptr<std::vector<int>> muon_passesSingleMuon;
+    std::unique_ptr<std::vector<int>> muon_charge;
+    std::unique_ptr<std::vector<float>> muon_etaSt1;
+    std::unique_ptr<std::vector<float>> muon_phiSt1;
+    std::unique_ptr<std::vector<float>> muon_etaSt2;
+    std::unique_ptr<std::vector<float>> muon_phiSt2;
+    std::unique_ptr<std::vector<float>> muon_vx;
+    std::unique_ptr<std::vector<float>> muon_vy;
+    std::unique_ptr<std::vector<float>> muon_vz;
+    std::unique_ptr<std::vector<float>> muon_px;
+    std::unique_ptr<std::vector<float>> muon_py;
+    std::unique_ptr<std::vector<float>> muon_pz;
+    std::unique_ptr<std::vector<bool>> muon_isSAMuon;
+    std::unique_ptr<std::vector<bool>> muon_isGlobalMuon;
+    std::unique_ptr<std::vector<bool>> muon_isTrackerMuon;
+    std::unique_ptr<std::vector<bool>> muon_isPFMuon;
+    std::unique_ptr<std::vector<int>>  muon_nChambers;
+    std::unique_ptr<std::vector<int>>  muon_nChambersCSCorDT;
+    std::unique_ptr<std::vector<int>>  muon_nMatches;
+    std::unique_ptr<std::vector<int>>  muon_nMatchedStations;
+    std::unique_ptr<std::vector<unsigned int>> muon_expectedNumberOfMatchedStations;
+    std::unique_ptr<std::vector<unsigned int>> muon_stationMask;
+    std::unique_ptr<std::vector<int>>  muon_nMatchedRPCLayers;
+    std::unique_ptr<std::vector<unsigned int>> muon_RPClayerMask;
 
     //Displaced Muons
     vector<Float_t>  dispMuon_eta;
@@ -381,52 +348,9 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     vector <int> l1mu_bx;
     int l1mu_size;
     
-    // BMTF RegionalMuonCand muons
-    vector <Float_t> BMTFMu_processor;
-    vector <Float_t> BMTFMu_hwPt;
-    vector <Float_t> BMTFMu_hwQual;
-    vector <Float_t> BMTFMu_hwSign;
-    vector <Float_t> BMTFMu_hwSignValid;
-    vector <Float_t> BMTFMu_hwEta;
-    vector <Float_t> BMTFMu_hwPhi;
 
-    //Triggers
-    bool HLT_IsoMu27;
-    bool HLT_IsoMu24;
-  
-    bool Flag_IsUnprefirable;
-    bool passL1_Final_bxmin1;
-    bool passL1_Final_bxmin2;
-
-    //
-    // constants, enums and typedefs
-    //
-
-    const int  N_METFilters=18;
-    enum METFilterIndex{
-      idx_Flag_goodVertices,
-      idx_Flag_globalTightHalo2016Filter,
-      idx_Flag_globalSuperTightHalo2016Filter,
-      idx_Flag_HBHENoiseFilter,
-      idx_Flag_HBHENoiseIsoFilter,
-      idx_Flag_EcalDeadCellTriggerPrimitiveFilter,
-      idx_Flag_BadPFMuonFilter,
-      idx_Flag_BadPFMuonDzFilter,
-      idx_Flag_hfNoisyHitsFilter,
-      idx_Flag_BadChargedCandidateFilter,
-      idx_Flag_eeBadScFilter,
-      idx_Flag_ecalBadCalibFilter,
-      idx_Flag_ecalLaserCorrFilter,
-      idx_Flag_EcalDeadCellBoundaryEnergyFilter,
-      idx_PassecalBadCalibFilter_Update,
-      idx_PassecalLaserCorrFilter_Update,
-      idx_PassEcalDeadCellBoundaryEnergyFilter_Update,
-      idx_PassBadChargedCandidateFilter_Update
-    };
-
-
-    //
-    // static data member definitions
-    //
-
+    // Trigger flags
+    std::unique_ptr<bool> HLT_IsoMu24;
+    std::unique_ptr<bool> HLT_Mu50_L1SingleMuShower;
+    std::unique_ptr<bool> HLT_Mu50;
 };
