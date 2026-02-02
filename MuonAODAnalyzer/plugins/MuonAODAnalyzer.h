@@ -52,6 +52,15 @@
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
 
+//l1 muons
+#include "DataFormats/L1TGlobal/interface/GlobalAlgBlk.h"
+#include "DataFormats/L1TGlobal/interface/GlobalExtBlk.h"
+#include "DataFormats/L1TMuon/interface/RegionalMuonCand.h"
+#include "DataFormats/L1Trigger/interface/Muon.h"
+#include "DataFormats/L1Trigger/interface/BXVector.h"
+#include "DataFormats/PatCandidates/interface/PackedCandidate.h"
+#include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
+
 // trigger info
 #include "DataFormats/Math/interface/deltaR.h"
 #include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
@@ -70,6 +79,14 @@
 #include "DataFormats/GeometryVector/interface/GlobalVector.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 #include "MagneticField/Engine/interface/MagneticField.h"
+
+#include <fstream>
+#include "TLorentzVector.h"
+#include "TDirectory.h"
+#include <fmt/printf.h>
+
+#include "CondFormats/DataRecord/interface/L1TUtmTriggerMenuRcd.h"
+#include "CondFormats/L1TObjects/interface/L1TUtmTriggerMenu.h"
 
 class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources, edm::one::WatchRuns> {
   public:
@@ -114,6 +131,7 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources, e
 
     // Tokens
     edm::EDGetTokenT<reco::MuonCollection> RecoMuonToken_;
+    edm::EDGetTokenT<l1t::MuonBxCollection>l1MuonToken_;
     edm::EDGetTokenT<edm::TriggerResults> TriggerResultsToken_;
     edm::EDGetTokenT<trigger::TriggerEvent> TriggerSummaryLabelsToken_;
     edm::EDGetTokenT<reco::VertexCollection> VerticesToken_;
@@ -174,6 +192,39 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources, e
     std::unique_ptr<std::vector<float>> muon_phiSt1;
     std::unique_ptr<std::vector<float>> muon_etaSt2;
     std::unique_ptr<std::vector<float>> muon_phiSt2;
+    std::unique_ptr<std::vector<float>> muon_vx;
+    std::unique_ptr<std::vector<float>> muon_vy;
+    std::unique_ptr<std::vector<float>> muon_vz;
+    std::unique_ptr<std::vector<float>> muon_px;
+    std::unique_ptr<std::vector<float>> muon_py;
+    std::unique_ptr<std::vector<float>> muon_pz;
+    std::unique_ptr<std::vector<bool>> muon_isSAMuon;
+    std::unique_ptr<std::vector<bool>> muon_isGlobalMuon;
+    std::unique_ptr<std::vector<bool>> muon_isTrackerMuon;
+    std::unique_ptr<std::vector<bool>> muon_isPFMuon;
+    std::unique_ptr<std::vector<int>>  muon_nChambers;
+    std::unique_ptr<std::vector<int>>  muon_nChambersCSCorDT;
+    std::unique_ptr<std::vector<int>>  muon_nMatches;
+    std::unique_ptr<std::vector<int>>  muon_nMatchedStations;
+    std::unique_ptr<std::vector<unsigned int>> muon_expectedNumberOfMatchedStations;
+    std::unique_ptr<std::vector<unsigned int>> muon_stationMask;
+    std::unique_ptr<std::vector<int>>  muon_nMatchedRPCLayers;
+    std::unique_ptr<std::vector<unsigned int>> muon_RPClayerMask;
+
+    //L1 muon
+    vector <int> l1mu_qual;
+    vector <int> l1mu_charge;
+    vector <Float_t> l1mu_pt;
+    vector <Float_t> l1mu_pt_dxy;
+    vector <int> l1mu_dxy;
+    vector <Float_t> l1mu_eta;
+    vector <Float_t> l1mu_etaAtVtx;
+    vector <Float_t> l1mu_phi;
+    vector <Float_t> l1mu_phiAtVtx;
+    vector <int> l1mu_tfIdx;
+    vector <int> l1mu_bx;
+    int l1mu_size;
+    
 
     // Trigger flags
     std::unique_ptr<bool> HLT_IsoMu24;

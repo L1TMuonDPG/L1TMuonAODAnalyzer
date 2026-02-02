@@ -3,13 +3,6 @@
 // Package:    MuonAODAnalyzer/MuonAODAnalyzer
 // Class:      MuonAODAnalyzer
 //
-/**\class MuonAODAnalyzer MuonAODAnalyzer.cc MuonAODAnalyzer/MuonAODAnalyzer/plugins/MuonAODAnalyzer.cc
-
- Description: [one line class summary]
-
- Implementation:
-     [Notes on implementation]
-*/
 //
 // Original Author:  Efe Yigitbasi
 //         Created:  Sat, 10 Sep 2022 11:08:53 GMT
@@ -39,6 +32,7 @@ MuonAODAnalyzer::MuonAODAnalyzer(const edm::ParameterSet &iConfig)
 
     // reco muons
     RecoMuonToken_ = consumes<reco::MuonCollection>(RecoMuonTag_);
+    l1MuonToken_ = consumes<l1t::MuonBxCollection>(edm::InputTag("gmtStage2Digis","Muon"));
     TriggerResultsToken_ = consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("Triggers"));
     // TriggerResultsToken_ = consumes<edm::TriggerResults>(edm::InputTag("TriggerResults", "", "HLTX"));
     TriggerSummaryLabelsToken_ = consumes<trigger::TriggerEvent>(edm::InputTag("hltTriggerSummaryAOD", "", "HLT"));
@@ -69,6 +63,29 @@ void MuonAODAnalyzer::analyze(const edm::Event &iEvent,
     // ___________________________________________________________________________
     // Process objects
 
+    // L1 muons
+    edm::Handle<l1t::MuonBxCollection> l1muoncoll;
+    iEvent.getByToken(l1MuonToken_ , l1muoncoll);
+    for(int i = l1muoncoll->getFirstBX() ; i<= l1muoncoll->getLastBX() ;i++){
+        for( l1t::MuonBxCollection::const_iterator l1muonit= l1muoncoll->begin(i); l1muonit != l1muoncoll->end(i) ; ++l1muonit){
+        if(l1muonit->pt() < 0) continue;
+        l1mu_qual.push_back( l1muonit->hwQual() );
+        l1mu_charge.push_back( l1muonit->charge() );
+        l1mu_pt.push_back( l1muonit->pt() );
+        l1mu_pt_dxy.push_back( l1muonit->ptUnconstrained() );
+        l1mu_dxy.push_back( l1muonit->hwDXY() );
+        l1mu_eta.push_back( l1muonit->eta() );
+        l1mu_etaAtVtx.push_back( l1muonit->etaAtVtx() );
+        l1mu_phi.push_back( l1muonit->phi() );
+        l1mu_phiAtVtx.push_back( l1muonit->phiAtVtx() );
+        l1mu_tfIdx.push_back(l1muonit->tfMuonIndex());
+
+        l1mu_bx.push_back( i);
+        l1mu_size++;
+
+        }
+    }
+
     // Reco muons
     if (useRecoMuons_ && RecoMuons_ != nullptr) {
         for (const auto &muon : *RecoMuons_) {
@@ -78,6 +95,24 @@ void MuonAODAnalyzer::analyze(const edm::Event &iEvent,
             muon_eta->push_back(muon.eta());
             muon_phi->push_back(muon.phi());
             muon_charge->push_back(muon.charge());
+            muon_isSAMuon->push_back(muon.isStandAloneMuon());
+            muon_isTrackerMuon->push_back(muon.isTrackerMuon());
+            muon_isGlobalMuon->push_back(muon.isGlobalMuon());
+            muon_isPFMuon->push_back(muon.isPFMuon());
+            muon_vx->push_back(muon.vx());
+            muon_vy->push_back(muon.vy());
+            muon_vz->push_back(muon.vz());
+            muon_px->push_back(muon.px());
+            muon_py->push_back(muon.py());
+            muon_pz->push_back(muon.pz());
+            muon_nChambers->push_back(muon.numberOfChambers() );
+            muon_nChambersCSCorDT->push_back(muon.numberOfChambersCSCorDT() );
+            muon_nMatches->push_back(muon.numberOfMatches() );
+            muon_nMatchedStations->push_back(muon.numberOfMatchedStations() );
+            muon_expectedNumberOfMatchedStations->push_back(muon.expectedNnumberOfMatchedStations() );
+            muon_stationMask->push_back(muon.stationMask() );
+            muon_nMatchedRPCLayers->push_back(muon.numberOfMatchedRPCLayers() );
+            muon_RPClayerMask->push_back(muon.RPClayerMask() );
 
             if (Vertices_ != nullptr && !Vertices_->empty()){
                 if( !(muon.muonBestTrack().isNull())){
@@ -418,6 +453,25 @@ void MuonAODAnalyzer::makeTree() {
     muon_phiSt1 = std::make_unique<std::vector<float>>();
     muon_etaSt2 = std::make_unique<std::vector<float>>();
     muon_phiSt2 = std::make_unique<std::vector<float>>();
+    muon_vx = std::make_unique<std::vector<float>>();
+    muon_vy = std::make_unique<std::vector<float>>();
+    muon_vz = std::make_unique<std::vector<float>>();
+    muon_px = std::make_unique<std::vector<float>>();
+    muon_py = std::make_unique<std::vector<float>>();
+    muon_pz = std::make_unique<std::vector<float>>();
+    muon_isSAMuon = std::make_unique<std::vector<bool>>();
+    muon_isGlobalMuon = std::make_unique<std::vector<bool>>();
+    muon_isTrackerMuon = std::make_unique<std::vector<bool>>();
+    muon_isPFMuon = std::make_unique<std::vector<bool>>();
+    muon_nChambers = std::make_unique<std::vector<int>>();
+    muon_nChambersCSCorDT = std::make_unique<std::vector<int>>();
+    muon_nMatches = std::make_unique<std::vector<int>>();
+    muon_nMatchedStations = std::make_unique<std::vector<int>>();
+    muon_expectedNumberOfMatchedStations = std::make_unique<std::vector<unsigned int>>();
+    muon_stationMask = std::make_unique<std::vector<unsigned int>>();
+    muon_nMatchedRPCLayers = std::make_unique<std::vector<int>>();
+    muon_RPClayerMask = std::make_unique<std::vector<unsigned int>>();
+
 
     // Trigger flags pointers
     HLT_IsoMu24 = std::make_unique<bool>();
@@ -433,6 +487,19 @@ void MuonAODAnalyzer::makeTree() {
         tree->Branch("eventInfo_nvtx", &(eventInfo_nvtx));
         tree->Branch("eventInfo_bx", &(eventInfo_bx));
     }
+
+    tree->Branch("l1mu_qual",&l1mu_qual);
+    tree->Branch("l1mu_charge",&l1mu_charge);
+    tree->Branch("l1mu_pt",&l1mu_pt);
+    tree->Branch("l1mu_pt_dxy",&l1mu_pt_dxy);
+    tree->Branch("l1mu_dxy",&l1mu_dxy);
+    tree->Branch("l1mu_eta",&l1mu_eta);
+    tree->Branch("l1mu_etaAtVtx",&l1mu_etaAtVtx);
+    tree->Branch("l1mu_phi",&l1mu_phi);
+    tree->Branch("l1mu_phiAtVtx",&l1mu_phiAtVtx);
+    tree->Branch("l1mu_tfIdx",&l1mu_tfIdx);
+    tree->Branch("l1mu_bx",&l1mu_bx);
+    tree->Branch("l1mu_size", &l1mu_size, "l1mu_size/I");
 
     // Reco muons
     if (useRecoMuons_) {
@@ -458,6 +525,24 @@ void MuonAODAnalyzer::makeTree() {
         tree->Branch("muon_phiSt1", &(*muon_phiSt1));
         tree->Branch("muon_etaSt2", &(*muon_etaSt2));
         tree->Branch("muon_phiSt2", &(*muon_phiSt2));
+        tree->Branch("muon_vx", &(*muon_vx));
+        tree->Branch("muon_vy", &(*muon_vy));
+        tree->Branch("muon_vz", &(*muon_vz));
+        tree->Branch("muon_px", &(*muon_px));
+        tree->Branch("muon_py", &(*muon_py));
+        tree->Branch("muon_pz", &(*muon_pz));
+        tree->Branch("muon_isSAMuon", &(*muon_isSAMuon));
+        tree->Branch("muon_isTrackerMuon", &(*muon_isTrackerMuon));
+        tree->Branch("muon_isGlobalMuon", &(*muon_isGlobalMuon));
+        tree->Branch("muon_isPFMuon", &(*muon_isPFMuon));
+        tree->Branch("muon_nChambers", &(*muon_nChambers));
+        tree->Branch("muon_nChambersCSCorDT", &(*muon_nChambersCSCorDT));
+        tree->Branch("muon_nMatches", &(*muon_nMatches));
+        tree->Branch("muon_nMatchedStations", &(*muon_nMatchedStations));
+        tree->Branch("muon_expectedNumberOfMatchedStations", &(*muon_expectedNumberOfMatchedStations));
+        tree->Branch("muon_stationMask", &(*muon_stationMask));
+        tree->Branch("muon_nMatchedRPCLayers", &(*muon_nMatchedRPCLayers));
+        tree->Branch("muon_RPClayerMask", &(*muon_RPClayerMask));
     }
 
     tree->Branch("HLT_IsoMu24", &(*HLT_IsoMu24));
@@ -502,6 +587,38 @@ void MuonAODAnalyzer::fillTree() {
     muon_phiSt1->clear();
     muon_etaSt2->clear();
     muon_phiSt2->clear();
+    muon_isSAMuon->clear() ;
+    muon_isTrackerMuon->clear();
+    muon_isGlobalMuon->clear();
+    muon_isPFMuon->clear();
+    muon_nChambers->clear();
+    muon_nChambersCSCorDT->clear();
+    muon_nMatches->clear();
+    muon_nMatchedStations->clear();
+    muon_expectedNumberOfMatchedStations->clear();
+    muon_stationMask->clear();
+    muon_nMatchedRPCLayers->clear();
+    muon_RPClayerMask->clear();
+    
+    muon_vx->clear();
+    muon_vy->clear();
+    muon_vz->clear();
+    muon_px->clear();
+    muon_py->clear();
+    muon_pz->clear();
+
+    l1mu_qual.clear();
+    l1mu_charge.clear();
+    l1mu_pt.clear();
+    l1mu_pt_dxy.clear();
+    l1mu_dxy.clear();
+    l1mu_eta.clear();
+    l1mu_etaAtVtx.clear();
+    l1mu_phi.clear();
+    l1mu_phiAtVtx.clear();
+    l1mu_tfIdx.clear();
+    l1mu_bx.clear();
+    l1mu_size = 0;
 
     // Clear flags
     (*HLT_IsoMu24) = false;

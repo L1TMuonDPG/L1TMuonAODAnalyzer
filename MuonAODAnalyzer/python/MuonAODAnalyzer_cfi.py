@@ -9,6 +9,7 @@ MuonAODAnalyzer = cms.EDAnalyzer('MuonAODAnalyzer',
     # Input Tags for Reco, Trigger, and Vertices
     RecoMuonTag      = cms.InputTag('muons'),
     Triggers         = cms.InputTag("TriggerResults::HLT"),
+    l1GtSrc = cms.InputTag("gtStage2Digis"),
     
     # Flags to enable processing
     useRecoMuons     = cms.bool(True),
@@ -18,7 +19,7 @@ MuonAODAnalyzer = cms.EDAnalyzer('MuonAODAnalyzer',
     isoTriggerNames = cms.vstring(
       "HLT_IsoMu24_v*",
       "HLT_IsoMu27_v*",
-      "HLT_IsoMu30_v*",
+      # "HLT_IsoMu30_v*",
     ),
     triggerNames = cms.vstring(
       "HLT_Mu50_v*",
