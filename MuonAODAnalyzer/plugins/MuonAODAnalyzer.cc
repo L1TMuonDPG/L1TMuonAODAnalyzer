@@ -13,6 +13,9 @@
 
 MuonAODAnalyzer::MuonAODAnalyzer(const edm::ParameterSet &iConfig)
     : RecoMuonTag_(iConfig.getParameter<edm::InputTag>("RecoMuonTag")),
+    DispMuonTag_(iConfig.getParameter<edm::InputTag>("DispMuonTag")),
+    CosmicMuonTag_(iConfig.getParameter<edm::InputTag>("CosmicMuonTag")),
+    CosmicMuon1LegTag_(iConfig.getParameter<edm::InputTag>("CosmicMuon1LegTag")),
     //   TriggerResultsToken_(consumes<TriggerResults>(iConfig.getParameter<edm::InputTag>("Triggers"))),
       outFileName_(iConfig.getParameter<std::string>("outFileName")),
       verbose_(iConfig.getUntrackedParameter<int>("verbosity")),
@@ -41,9 +44,9 @@ MuonAODAnalyzer::MuonAODAnalyzer(const edm::ParameterSet &iConfig)
     TriggerSummaryLabelsToken_ = consumes<trigger::TriggerEvent>(edm::InputTag("hltTriggerSummaryAOD", "", "HLT"));
     VerticesToken_ = consumes<reco::VertexCollection>(edm::InputTag("offlinePrimaryVertices"));
 
-    dispMuonToken_ = consumes< std::vector< reco::Muon> >(iConfig.getParameter<edm::InputTag>("DispMuons"));
-    CosmicMuonToken_ = consumes< std::vector< reco::Muon> >(iConfig.getParameter<edm::InputTag>("CosmicMuons"));
-    CosmicMuon1LegToken_ = consumes< std::vector< reco::Muon> >(iConfig.getParameter<edm::InputTag>("CosmicMuons1Leg"));
+    DispMuonToken_ = consumes<reco::MuonCollection>(DispMuonTag_);
+    CosmicMuonToken_ = consumes<reco::MuonCollection>(CosmicMuonTag_);
+    CosmicMuon1LegToken_ = consumes<reco::MuonCollection>(CosmicMuon1LegTag_);
 
     triggerMatching_ = true;
     triggerMaxDeltaR_ = 0.1;
@@ -362,7 +365,7 @@ void MuonAODAnalyzer::analyze(const edm::Event &iEvent,
             }
 
         }
-        (*dispMuon_size) = RecoMuons_->size();
+        (*dispMuon_size) = DispMuons_->size();
     }
 
     // Cosmic muons
@@ -498,7 +501,7 @@ void MuonAODAnalyzer::analyze(const edm::Event &iEvent,
             }
 
         }
-        (*cosmicMuon_size) = RecoMuons_->size();
+        (*cosmicMuon_size) = CosmicMuons_->size();
     }
 
     // Cosmic 1 Leg muons
@@ -634,7 +637,7 @@ void MuonAODAnalyzer::analyze(const edm::Event &iEvent,
             }
 
         }
-        (*cosmicMuon1Leg_size) = RecoMuons_->size();
+        (*cosmicMuon1Leg_size) = CosmicMuons1Leg_->size();
     }
 
 

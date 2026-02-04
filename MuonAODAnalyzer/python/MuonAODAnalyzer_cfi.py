@@ -10,9 +10,9 @@ MuonAODAnalyzer = cms.EDAnalyzer('MuonAODAnalyzer',
     RecoMuonTag      = cms.InputTag('muons'),
     Triggers         = cms.InputTag("TriggerResults::HLT"),
     l1GtSrc = cms.InputTag("gtStage2Digis"),
-    DispMuons=cms.InputTag("displacedMuons"),
-    CosmicMuons=cms.InputTag("muonsFromCosmics"), 
-    CosmicMuons1Leg=cms.InputTag("muonsFromCosmics1Leg"),
+    DispMuonTag=cms.InputTag("displacedMuons"),
+    CosmicMuonTag=cms.InputTag("muonsFromCosmics"), 
+    CosmicMuon1LegTag=cms.InputTag("muonsFromCosmics1Leg"),
     
     # Flags to enable processing
     useRecoMuons     = cms.bool(True),

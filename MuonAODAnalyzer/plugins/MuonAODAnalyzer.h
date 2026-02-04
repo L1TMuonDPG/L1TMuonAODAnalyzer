@@ -118,11 +118,17 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources, e
     // ---------- Member data ---------------------------
 
     const edm::InputTag RecoMuonTag_;
+    const edm::InputTag DispMuonTag_;
+    const edm::InputTag CosmicMuonTag_;
+    const edm::InputTag CosmicMuon1LegTag_;
     const std::string outFileName_;
     int verbose_;
 
     bool useRecoMuons_;
     bool useEventInfo_;
+    bool useDispMuons_;
+    bool useCosmicMuons_;
+    bool useCosmicMuons1Leg_;
     bool debug_;
 
     // trig matching
@@ -137,7 +143,7 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources, e
     edm::EDGetTokenT<reco::VertexCollection> VerticesToken_;
     edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> theBFieldToken_;
 
-    edm::EDGetTokenT<std::vector< reco::Muon> > dispMuonToken_;
+    edm::EDGetTokenT<std::vector< reco::Muon> > DispMuonToken_;
     edm::EDGetTokenT<std::vector< reco::Muon> > CosmicMuonToken_;
     edm::EDGetTokenT<std::vector< reco::Muon> > CosmicMuon1LegToken_;
 
@@ -155,6 +161,9 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources, e
     PropagateToMuon muPropagator2nd_;
 
     const reco::MuonCollection *RecoMuons_;
+    const reco::MuonCollection *DispMuons_;
+    const reco::MuonCollection *CosmicMuons_;
+    const reco::MuonCollection *CosmicMuons1Leg_;
     const edm::TriggerResults *TriggerResults_;
     const trigger::TriggerEvent *TriggerSummaryLabels_;
     const reco::VertexCollection *Vertices_;
