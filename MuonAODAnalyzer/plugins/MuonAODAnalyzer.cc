@@ -18,6 +18,9 @@ MuonAODAnalyzer::MuonAODAnalyzer(const edm::ParameterSet &iConfig)
       verbose_(iConfig.getUntrackedParameter<int>("verbosity")),
       useRecoMuons_(iConfig.getParameter<bool>("useRecoMuons")),
       useEventInfo_(iConfig.getParameter<bool>("useEventInfo")),
+      useDispMuons_(iConfig.getParameter<bool>("useDispMuons")),
+      useCosmicMuons_(iConfig.getParameter<bool>("useCosmicMuons")),
+      useCosmicMuons1Leg_(iConfig.getParameter<bool>("useCosmicMuons1Leg")),
       debug_(iConfig.getParameter<bool>("debug")),
       // trig matching
       isoTriggerNames_(iConfig.getParameter<std::vector<std::string>>("isoTriggerNames")),
@@ -37,6 +40,10 @@ MuonAODAnalyzer::MuonAODAnalyzer(const edm::ParameterSet &iConfig)
     // TriggerResultsToken_ = consumes<edm::TriggerResults>(edm::InputTag("TriggerResults", "", "HLTX"));
     TriggerSummaryLabelsToken_ = consumes<trigger::TriggerEvent>(edm::InputTag("hltTriggerSummaryAOD", "", "HLT"));
     VerticesToken_ = consumes<reco::VertexCollection>(edm::InputTag("offlinePrimaryVertices"));
+
+    dispMuonToken_ = consumes< std::vector< reco::Muon> >(iConfig.getParameter<edm::InputTag>("DispMuons"));
+    CosmicMuonToken_ = consumes< std::vector< reco::Muon> >(iConfig.getParameter<edm::InputTag>("CosmicMuons"));
+    CosmicMuon1LegToken_ = consumes< std::vector< reco::Muon> >(iConfig.getParameter<edm::InputTag>("CosmicMuons1Leg"));
 
     triggerMatching_ = true;
     triggerMaxDeltaR_ = 0.1;
@@ -222,6 +229,416 @@ void MuonAODAnalyzer::analyze(const edm::Event &iEvent,
         (*muon_size) = RecoMuons_->size();
     }
 
+    // Disp muons
+    if (useDispMuons_ && DispMuons_ != nullptr) {
+        for (const auto &muon : *DispMuons_) {
+            dispMuon_e->push_back(muon.energy());
+            dispMuon_et->push_back(muon.et());
+            dispMuon_pt->push_back(muon.pt());
+            dispMuon_eta->push_back(muon.eta());
+            dispMuon_phi->push_back(muon.phi());
+            dispMuon_charge->push_back(muon.charge());
+            dispMuon_isSAMuon->push_back(muon.isStandAloneMuon());
+            dispMuon_isTrackerMuon->push_back(muon.isTrackerMuon());
+            dispMuon_isGlobalMuon->push_back(muon.isGlobalMuon());
+            dispMuon_isPFMuon->push_back(muon.isPFMuon());
+            dispMuon_vx->push_back(muon.vx());
+            dispMuon_vy->push_back(muon.vy());
+            dispMuon_vz->push_back(muon.vz());
+            dispMuon_px->push_back(muon.px());
+            dispMuon_py->push_back(muon.py());
+            dispMuon_pz->push_back(muon.pz());
+            dispMuon_nChambers->push_back(muon.numberOfChambers() );
+            dispMuon_nChambersCSCorDT->push_back(muon.numberOfChambersCSCorDT() );
+            dispMuon_nMatches->push_back(muon.numberOfMatches() );
+            dispMuon_nMatchedStations->push_back(muon.numberOfMatchedStations() );
+            dispMuon_expectedNumberOfMatchedStations->push_back(muon.expectedNnumberOfMatchedStations() );
+            dispMuon_stationMask->push_back(muon.stationMask() );
+            dispMuon_nMatchedRPCLayers->push_back(muon.numberOfMatchedRPCLayers() );
+            dispMuon_RPClayerMask->push_back(muon.RPClayerMask() );
+
+            if (Vertices_ != nullptr && !Vertices_->empty()){
+                if( !(muon.muonBestTrack().isNull())){
+                    dispMuon_dz->push_back( muon.muonBestTrack()->dz((*Vertices_)[0].position()));
+                    dispMuon_dxy->push_back( muon.muonBestTrack()->dxy((*Vertices_)[0].position()));
+                }
+            }
+
+            bool isLoose = (muon.isPFMuon() && (muon.isGlobalMuon() || muon.isTrackerMuon()));
+            bool goodGlob = muon.isGlobalMuon() && muon.globalTrack()->normalizedChi2() < 3 &&
+                  muon.combinedQuality().chi2LocalPosition < 12 && muon.combinedQuality().trkKink < 20;
+            bool isMedium = isLoose && muon.innerTrack()->validFraction() > 0.49 &&
+                  muon::segmentCompatibility(muon) > (goodGlob ? 0.303 : 0.451);
+            bool isTight = false;
+            
+            if (Vertices_ != nullptr && !Vertices_->empty()){
+                isTight = muon.isGlobalMuon() && muon.isPFMuon() && muon.globalTrack()->normalizedChi2() < 10. &&
+                    muon.globalTrack()->hitPattern().numberOfValidMuonHits() > 0 &&
+                    muon.numberOfMatchedStations() > 1 &&
+                    std::abs(muon.muonBestTrack()->dxy(((*Vertices_)[0]).position())) < 0.2 &&
+                    std::abs(muon.muonBestTrack()->dz(((*Vertices_)[0]).position())) < 0.5 &&
+                    muon.innerTrack()->hitPattern().numberOfValidPixelHits() > 0 &&
+                    muon.innerTrack()->hitPattern().trackerLayersWithMeasurement() > 5 &&
+                    muon.globalTrack()->normalizedChi2() < 1;
+            }
+            dispMuon_isLooseMuon->push_back(isLoose);
+            dispMuon_isMediumMuon->push_back(isMedium);
+            dispMuon_isTightMuon->push_back(isTight);
+
+            double iso = (muon.pfIsolationR04().sumChargedHadronPt +
+                std::max(0.,
+                    muon.pfIsolationR04().sumNeutralHadronEt + muon.pfIsolationR04().sumPhotonEt -
+                        0.5 * muon.pfIsolationR04().sumPUPt)) /
+                muon.pt();
+            dispMuon_iso->push_back(iso);
+
+            if (triggerMatching_) {
+                double isoMatchDeltaR = 9999.;
+                double matchDeltaR = 9999.;
+                int hasIsoTriggered = 0;
+                int hasTriggered = 0;
+                int passesSingleMuonFlag = 0;
+
+                // first check if the trigger results are valid:
+                if (TriggerResults_ != nullptr) {
+                    if (TriggerSummaryLabels_ != nullptr) {
+                        const edm::TriggerNames& trigNames = iEvent.triggerNames(*TriggerResults_);
+                        for (UInt_t iPath = 0; iPath < isoTriggerNames_.size(); ++iPath) {
+                            if (passesSingleMuonFlag == 1)
+                                continue;
+                            std::string pathName = isoTriggerNames_.at(iPath);
+                            bool passTrig = false;
+
+                            if (trigNames.triggerIndex(pathName) < trigNames.size())
+                                passTrig = TriggerResults_->accept(trigNames.triggerIndex(pathName));
+                            if (passTrig)
+                                passesSingleMuonFlag = 1;
+                        }
+
+                        // get trigger objects:
+                        const trigger::TriggerObjectCollection triggerObjects = TriggerSummaryLabels_->getObjects();
+
+                        matchDeltaR = match_trigger(triggerIndices_, triggerObjects, *TriggerSummaryLabels_, muon);
+                        if (matchDeltaR < triggerMaxDeltaR_)
+                            hasTriggered = 1;
+
+                        isoMatchDeltaR = match_trigger(isoTriggerIndices_, triggerObjects, *TriggerSummaryLabels_, muon);
+                        if (isoMatchDeltaR < triggerMaxDeltaR_)
+                            hasIsoTriggered = 1;
+
+                    } 
+                } 
+
+                dispMuon_hlt_isomu->push_back(hasIsoTriggered);
+                dispMuon_hlt_mu->push_back(hasTriggered);
+                dispMuon_hlt_isoDeltaR->push_back(isoMatchDeltaR);
+                dispMuon_hlt_deltaR->push_back(matchDeltaR);
+                dispMuon_passesSingleMuon->push_back(passesSingleMuonFlag);
+            } else {
+                dispMuon_hlt_isomu->push_back(-999);
+                dispMuon_hlt_mu->push_back(-999);
+                dispMuon_hlt_isoDeltaR->push_back(-999);
+                dispMuon_hlt_deltaR->push_back(-999);
+                dispMuon_passesSingleMuon->push_back(-999);
+            }
+
+            // extrapolation of track coordinates
+            TrajectoryStateOnSurface stateAtMuSt1 = muPropagator1st_.extrapolate(muon);
+            if (stateAtMuSt1.isValid()) {
+                dispMuon_etaSt1->push_back(stateAtMuSt1.globalPosition().eta());
+                dispMuon_phiSt1->push_back(stateAtMuSt1.globalPosition().phi());
+            } else {
+                dispMuon_etaSt1->push_back(-9999);
+                dispMuon_phiSt1->push_back(-9999);
+            }
+
+            TrajectoryStateOnSurface stateAtMuSt2 = muPropagator2nd_.extrapolate(muon);
+            if (stateAtMuSt2.isValid()) {
+                dispMuon_etaSt2->push_back(stateAtMuSt2.globalPosition().eta());
+                dispMuon_phiSt2->push_back(stateAtMuSt2.globalPosition().phi());
+            } else {
+                dispMuon_etaSt2->push_back(-9999);
+                dispMuon_phiSt2->push_back(-9999);
+            }
+
+        }
+        (*dispMuon_size) = RecoMuons_->size();
+    }
+
+    // Cosmic muons
+    if (useCosmicMuons_ && CosmicMuons_ != nullptr) {
+        for (const auto &muon : *CosmicMuons_) {
+            cosmicMuon_e->push_back(muon.energy());
+            cosmicMuon_et->push_back(muon.et());
+            cosmicMuon_pt->push_back(muon.pt());
+            cosmicMuon_eta->push_back(muon.eta());
+            cosmicMuon_phi->push_back(muon.phi());
+            cosmicMuon_charge->push_back(muon.charge());
+            cosmicMuon_isSAMuon->push_back(muon.isStandAloneMuon());
+            cosmicMuon_isTrackerMuon->push_back(muon.isTrackerMuon());
+            cosmicMuon_isGlobalMuon->push_back(muon.isGlobalMuon());
+            cosmicMuon_isPFMuon->push_back(muon.isPFMuon());
+            cosmicMuon_vx->push_back(muon.vx());
+            cosmicMuon_vy->push_back(muon.vy());
+            cosmicMuon_vz->push_back(muon.vz());
+            cosmicMuon_px->push_back(muon.px());
+            cosmicMuon_py->push_back(muon.py());
+            cosmicMuon_pz->push_back(muon.pz());
+            cosmicMuon_nChambers->push_back(muon.numberOfChambers() );
+            cosmicMuon_nChambersCSCorDT->push_back(muon.numberOfChambersCSCorDT() );
+            cosmicMuon_nMatches->push_back(muon.numberOfMatches() );
+            cosmicMuon_nMatchedStations->push_back(muon.numberOfMatchedStations() );
+            cosmicMuon_expectedNumberOfMatchedStations->push_back(muon.expectedNnumberOfMatchedStations() );
+            cosmicMuon_stationMask->push_back(muon.stationMask() );
+            cosmicMuon_nMatchedRPCLayers->push_back(muon.numberOfMatchedRPCLayers() );
+            cosmicMuon_RPClayerMask->push_back(muon.RPClayerMask() );
+
+            if (Vertices_ != nullptr && !Vertices_->empty()){
+                if( !(muon.muonBestTrack().isNull())){
+                    cosmicMuon_dz->push_back( muon.muonBestTrack()->dz((*Vertices_)[0].position()));
+                    cosmicMuon_dxy->push_back( muon.muonBestTrack()->dxy((*Vertices_)[0].position()));
+                }
+            }
+
+            bool isLoose = (muon.isPFMuon() && (muon.isGlobalMuon() || muon.isTrackerMuon()));
+            bool goodGlob = muon.isGlobalMuon() && muon.globalTrack()->normalizedChi2() < 3 &&
+                  muon.combinedQuality().chi2LocalPosition < 12 && muon.combinedQuality().trkKink < 20;
+            bool isMedium = isLoose && muon.innerTrack()->validFraction() > 0.49 &&
+                  muon::segmentCompatibility(muon) > (goodGlob ? 0.303 : 0.451);
+            bool isTight = false;
+            
+            if (Vertices_ != nullptr && !Vertices_->empty()){
+                isTight = muon.isGlobalMuon() && muon.isPFMuon() && muon.globalTrack()->normalizedChi2() < 10. &&
+                    muon.globalTrack()->hitPattern().numberOfValidMuonHits() > 0 &&
+                    muon.numberOfMatchedStations() > 1 &&
+                    std::abs(muon.muonBestTrack()->dxy(((*Vertices_)[0]).position())) < 0.2 &&
+                    std::abs(muon.muonBestTrack()->dz(((*Vertices_)[0]).position())) < 0.5 &&
+                    muon.innerTrack()->hitPattern().numberOfValidPixelHits() > 0 &&
+                    muon.innerTrack()->hitPattern().trackerLayersWithMeasurement() > 5 &&
+                    muon.globalTrack()->normalizedChi2() < 1;
+            }
+            cosmicMuon_isLooseMuon->push_back(isLoose);
+            cosmicMuon_isMediumMuon->push_back(isMedium);
+            cosmicMuon_isTightMuon->push_back(isTight);
+
+            double iso = (muon.pfIsolationR04().sumChargedHadronPt +
+                std::max(0.,
+                    muon.pfIsolationR04().sumNeutralHadronEt + muon.pfIsolationR04().sumPhotonEt -
+                        0.5 * muon.pfIsolationR04().sumPUPt)) /
+                muon.pt();
+            cosmicMuon_iso->push_back(iso);
+
+            if (triggerMatching_) {
+                double isoMatchDeltaR = 9999.;
+                double matchDeltaR = 9999.;
+                int hasIsoTriggered = 0;
+                int hasTriggered = 0;
+                int passesSingleMuonFlag = 0;
+
+                // first check if the trigger results are valid:
+                if (TriggerResults_ != nullptr) {
+                    if (TriggerSummaryLabels_ != nullptr) {
+                        const edm::TriggerNames& trigNames = iEvent.triggerNames(*TriggerResults_);
+                        for (UInt_t iPath = 0; iPath < isoTriggerNames_.size(); ++iPath) {
+                            if (passesSingleMuonFlag == 1)
+                                continue;
+                            std::string pathName = isoTriggerNames_.at(iPath);
+                            bool passTrig = false;
+
+                            if (trigNames.triggerIndex(pathName) < trigNames.size())
+                                passTrig = TriggerResults_->accept(trigNames.triggerIndex(pathName));
+                            if (passTrig)
+                                passesSingleMuonFlag = 1;
+                        }
+
+                        // get trigger objects:
+                        const trigger::TriggerObjectCollection triggerObjects = TriggerSummaryLabels_->getObjects();
+
+                        matchDeltaR = match_trigger(triggerIndices_, triggerObjects, *TriggerSummaryLabels_, muon);
+                        if (matchDeltaR < triggerMaxDeltaR_)
+                            hasTriggered = 1;
+
+                        isoMatchDeltaR = match_trigger(isoTriggerIndices_, triggerObjects, *TriggerSummaryLabels_, muon);
+                        if (isoMatchDeltaR < triggerMaxDeltaR_)
+                            hasIsoTriggered = 1;
+
+                    } 
+                } 
+
+                cosmicMuon_hlt_isomu->push_back(hasIsoTriggered);
+                cosmicMuon_hlt_mu->push_back(hasTriggered);
+                cosmicMuon_hlt_isoDeltaR->push_back(isoMatchDeltaR);
+                cosmicMuon_hlt_deltaR->push_back(matchDeltaR);
+                cosmicMuon_passesSingleMuon->push_back(passesSingleMuonFlag);
+            } else {
+                cosmicMuon_hlt_isomu->push_back(-999);
+                cosmicMuon_hlt_mu->push_back(-999);
+                cosmicMuon_hlt_isoDeltaR->push_back(-999);
+                cosmicMuon_hlt_deltaR->push_back(-999);
+                cosmicMuon_passesSingleMuon->push_back(-999);
+            }
+
+            // extrapolation of track coordinates
+            TrajectoryStateOnSurface stateAtMuSt1 = muPropagator1st_.extrapolate(muon);
+            if (stateAtMuSt1.isValid()) {
+                cosmicMuon_etaSt1->push_back(stateAtMuSt1.globalPosition().eta());
+                cosmicMuon_phiSt1->push_back(stateAtMuSt1.globalPosition().phi());
+            } else {
+                cosmicMuon_etaSt1->push_back(-9999);
+                cosmicMuon_phiSt1->push_back(-9999);
+            }
+
+            TrajectoryStateOnSurface stateAtMuSt2 = muPropagator2nd_.extrapolate(muon);
+            if (stateAtMuSt2.isValid()) {
+                cosmicMuon_etaSt2->push_back(stateAtMuSt2.globalPosition().eta());
+                cosmicMuon_phiSt2->push_back(stateAtMuSt2.globalPosition().phi());
+            } else {
+                cosmicMuon_etaSt2->push_back(-9999);
+                cosmicMuon_phiSt2->push_back(-9999);
+            }
+
+        }
+        (*cosmicMuon_size) = RecoMuons_->size();
+    }
+
+    // Cosmic 1 Leg muons
+    if (useCosmicMuons1Leg_ && CosmicMuons1Leg_ != nullptr) {
+        for (const auto &muon : *CosmicMuons1Leg_) {
+            cosmicMuon1Leg_e->push_back(muon.energy());
+            cosmicMuon1Leg_et->push_back(muon.et());
+            cosmicMuon1Leg_pt->push_back(muon.pt());
+            cosmicMuon1Leg_eta->push_back(muon.eta());
+            cosmicMuon1Leg_phi->push_back(muon.phi());
+            cosmicMuon1Leg_charge->push_back(muon.charge());
+            cosmicMuon1Leg_isSAMuon->push_back(muon.isStandAloneMuon());
+            cosmicMuon1Leg_isTrackerMuon->push_back(muon.isTrackerMuon());
+            cosmicMuon1Leg_isGlobalMuon->push_back(muon.isGlobalMuon());
+            cosmicMuon1Leg_isPFMuon->push_back(muon.isPFMuon());
+            cosmicMuon1Leg_vx->push_back(muon.vx());
+            cosmicMuon1Leg_vy->push_back(muon.vy());
+            cosmicMuon1Leg_vz->push_back(muon.vz());
+            cosmicMuon1Leg_px->push_back(muon.px());
+            cosmicMuon1Leg_py->push_back(muon.py());
+            cosmicMuon1Leg_pz->push_back(muon.pz());
+            cosmicMuon1Leg_nChambers->push_back(muon.numberOfChambers() );
+            cosmicMuon1Leg_nChambersCSCorDT->push_back(muon.numberOfChambersCSCorDT() );
+            cosmicMuon1Leg_nMatches->push_back(muon.numberOfMatches() );
+            cosmicMuon1Leg_nMatchedStations->push_back(muon.numberOfMatchedStations() );
+            cosmicMuon1Leg_expectedNumberOfMatchedStations->push_back(muon.expectedNnumberOfMatchedStations() );
+            cosmicMuon1Leg_stationMask->push_back(muon.stationMask() );
+            cosmicMuon1Leg_nMatchedRPCLayers->push_back(muon.numberOfMatchedRPCLayers() );
+            cosmicMuon1Leg_RPClayerMask->push_back(muon.RPClayerMask() );
+
+            if (Vertices_ != nullptr && !Vertices_->empty()){
+                if( !(muon.muonBestTrack().isNull())){
+                    cosmicMuon1Leg_dz->push_back( muon.muonBestTrack()->dz((*Vertices_)[0].position()));
+                    cosmicMuon1Leg_dxy->push_back( muon.muonBestTrack()->dxy((*Vertices_)[0].position()));
+                }
+            }
+
+            bool isLoose = (muon.isPFMuon() && (muon.isGlobalMuon() || muon.isTrackerMuon()));
+            bool goodGlob = muon.isGlobalMuon() && muon.globalTrack()->normalizedChi2() < 3 &&
+                  muon.combinedQuality().chi2LocalPosition < 12 && muon.combinedQuality().trkKink < 20;
+            bool isMedium = isLoose && muon.innerTrack()->validFraction() > 0.49 &&
+                  muon::segmentCompatibility(muon) > (goodGlob ? 0.303 : 0.451);
+            bool isTight = false;
+            
+            if (Vertices_ != nullptr && !Vertices_->empty()){
+                isTight = muon.isGlobalMuon() && muon.isPFMuon() && muon.globalTrack()->normalizedChi2() < 10. &&
+                    muon.globalTrack()->hitPattern().numberOfValidMuonHits() > 0 &&
+                    muon.numberOfMatchedStations() > 1 &&
+                    std::abs(muon.muonBestTrack()->dxy(((*Vertices_)[0]).position())) < 0.2 &&
+                    std::abs(muon.muonBestTrack()->dz(((*Vertices_)[0]).position())) < 0.5 &&
+                    muon.innerTrack()->hitPattern().numberOfValidPixelHits() > 0 &&
+                    muon.innerTrack()->hitPattern().trackerLayersWithMeasurement() > 5 &&
+                    muon.globalTrack()->normalizedChi2() < 1;
+            }
+            cosmicMuon1Leg_isLooseMuon->push_back(isLoose);
+            cosmicMuon1Leg_isMediumMuon->push_back(isMedium);
+            cosmicMuon1Leg_isTightMuon->push_back(isTight);
+
+            double iso = (muon.pfIsolationR04().sumChargedHadronPt +
+                std::max(0.,
+                    muon.pfIsolationR04().sumNeutralHadronEt + muon.pfIsolationR04().sumPhotonEt -
+                        0.5 * muon.pfIsolationR04().sumPUPt)) /
+                muon.pt();
+            cosmicMuon1Leg_iso->push_back(iso);
+
+            if (triggerMatching_) {
+                double isoMatchDeltaR = 9999.;
+                double matchDeltaR = 9999.;
+                int hasIsoTriggered = 0;
+                int hasTriggered = 0;
+                int passesSingleMuonFlag = 0;
+
+                // first check if the trigger results are valid:
+                if (TriggerResults_ != nullptr) {
+                    if (TriggerSummaryLabels_ != nullptr) {
+                        const edm::TriggerNames& trigNames = iEvent.triggerNames(*TriggerResults_);
+                        for (UInt_t iPath = 0; iPath < isoTriggerNames_.size(); ++iPath) {
+                            if (passesSingleMuonFlag == 1)
+                                continue;
+                            std::string pathName = isoTriggerNames_.at(iPath);
+                            bool passTrig = false;
+
+                            if (trigNames.triggerIndex(pathName) < trigNames.size())
+                                passTrig = TriggerResults_->accept(trigNames.triggerIndex(pathName));
+                            if (passTrig)
+                                passesSingleMuonFlag = 1;
+                        }
+
+                        // get trigger objects:
+                        const trigger::TriggerObjectCollection triggerObjects = TriggerSummaryLabels_->getObjects();
+
+                        matchDeltaR = match_trigger(triggerIndices_, triggerObjects, *TriggerSummaryLabels_, muon);
+                        if (matchDeltaR < triggerMaxDeltaR_)
+                            hasTriggered = 1;
+
+                        isoMatchDeltaR = match_trigger(isoTriggerIndices_, triggerObjects, *TriggerSummaryLabels_, muon);
+                        if (isoMatchDeltaR < triggerMaxDeltaR_)
+                            hasIsoTriggered = 1;
+
+                    } 
+                } 
+
+                cosmicMuon1Leg_hlt_isomu->push_back(hasIsoTriggered);
+                cosmicMuon1Leg_hlt_mu->push_back(hasTriggered);
+                cosmicMuon1Leg_hlt_isoDeltaR->push_back(isoMatchDeltaR);
+                cosmicMuon1Leg_hlt_deltaR->push_back(matchDeltaR);
+                cosmicMuon1Leg_passesSingleMuon->push_back(passesSingleMuonFlag);
+            } else {
+                cosmicMuon1Leg_hlt_isomu->push_back(-999);
+                cosmicMuon1Leg_hlt_mu->push_back(-999);
+                cosmicMuon1Leg_hlt_isoDeltaR->push_back(-999);
+                cosmicMuon1Leg_hlt_deltaR->push_back(-999);
+                cosmicMuon1Leg_passesSingleMuon->push_back(-999);
+            }
+
+            // extrapolation of track coordinates
+            TrajectoryStateOnSurface stateAtMuSt1 = muPropagator1st_.extrapolate(muon);
+            if (stateAtMuSt1.isValid()) {
+                cosmicMuon1Leg_etaSt1->push_back(stateAtMuSt1.globalPosition().eta());
+                cosmicMuon1Leg_phiSt1->push_back(stateAtMuSt1.globalPosition().phi());
+            } else {
+                cosmicMuon1Leg_etaSt1->push_back(-9999);
+                cosmicMuon1Leg_phiSt1->push_back(-9999);
+            }
+
+            TrajectoryStateOnSurface stateAtMuSt2 = muPropagator2nd_.extrapolate(muon);
+            if (stateAtMuSt2.isValid()) {
+                cosmicMuon1Leg_etaSt2->push_back(stateAtMuSt2.globalPosition().eta());
+                cosmicMuon1Leg_phiSt2->push_back(stateAtMuSt2.globalPosition().phi());
+            } else {
+                cosmicMuon1Leg_etaSt2->push_back(-9999);
+                cosmicMuon1Leg_phiSt2->push_back(-9999);
+            }
+
+        }
+        (*cosmicMuon1Leg_size) = RecoMuons_->size();
+    }
+
+
+
     // Trigger Results - specific flags
     if (TriggerResults_ != nullptr) {
         const edm::TriggerNames& trigNames = iEvent.triggerNames(*TriggerResults_);
@@ -372,6 +789,9 @@ void MuonAODAnalyzer::getHandles(const edm::Event &iEvent,
 
     // reco muons
     auto muon_handle = make_handle(RecoMuons_);
+    auto dispMuon_handle = make_handle(DispMuons_);
+    auto cosmicMuon_handle = make_handle(CosmicMuons_);
+    auto cosmicMuon1Leg_handle = make_handle(CosmicMuons1Leg_);
     auto Vertices_handle = make_handle(Vertices_);
     auto TriggerResults_handle = make_handle(TriggerResults_);
     auto TriggerSummaryLabels_handle = make_handle(TriggerSummaryLabels_);
@@ -398,6 +818,82 @@ void MuonAODAnalyzer::getHandles(const edm::Event &iEvent,
         }
     } else {
         RecoMuons_ = nullptr;
+        Vertices_ = nullptr;
+    }
+
+    if (useDispMuons_) {
+        if (!DispMuonToken_.isUninitialized()) {
+            iEvent.getByToken(DispMuonToken_, dispMuon_handle);
+        }
+        if (!dispMuon_handle.isValid()) {
+            if (firstEvent_)
+                edm::LogError("NtupleMaker") << "Cannot get the product: " << DispMuonTag_;
+            DispMuons_ = nullptr;
+        } else {
+            DispMuons_ = dispMuon_handle.product();
+        }
+        
+        if (!VerticesToken_.isUninitialized()) {
+            iEvent.getByToken(VerticesToken_, Vertices_handle);
+        }
+        if (!Vertices_handle.isValid()) {
+            Vertices_ = nullptr;
+        } else {
+            Vertices_ = Vertices_handle.product();
+        }
+    } else {
+        DispMuons_ = nullptr;
+        Vertices_ = nullptr;
+    }
+
+
+    if (useCosmicMuons_) {
+        if (!CosmicMuonToken_.isUninitialized()) {
+            iEvent.getByToken(CosmicMuonToken_, cosmicMuon_handle);
+        }
+        if (!cosmicMuon_handle.isValid()) {
+            if (firstEvent_)
+                edm::LogError("NtupleMaker") << "Cannot get the product: " << CosmicMuonTag_;
+            CosmicMuons_ = nullptr;
+        } else {
+            CosmicMuons_ = cosmicMuon_handle.product();
+        }
+        
+        if (!VerticesToken_.isUninitialized()) {
+            iEvent.getByToken(VerticesToken_, Vertices_handle);
+        }
+        if (!Vertices_handle.isValid()) {
+            Vertices_ = nullptr;
+        } else {
+            Vertices_ = Vertices_handle.product();
+        }
+    } else {
+        CosmicMuons_ = nullptr;
+        Vertices_ = nullptr;
+    }
+
+    if (useCosmicMuons1Leg_) {
+        if (!CosmicMuon1LegToken_.isUninitialized()) {
+            iEvent.getByToken(CosmicMuon1LegToken_, cosmicMuon1Leg_handle);
+        }
+        if (!cosmicMuon1Leg_handle.isValid()) {
+            if (firstEvent_)
+                edm::LogError("NtupleMaker") << "Cannot get the product: " << CosmicMuon1LegTag_;
+            CosmicMuons1Leg_ = nullptr;
+        } else {
+            CosmicMuons1Leg_ = cosmicMuon1Leg_handle.product();
+        }
+        
+        if (!VerticesToken_.isUninitialized()) {
+            iEvent.getByToken(VerticesToken_, Vertices_handle);
+        }
+        if (!Vertices_handle.isValid()) {
+            Vertices_ = nullptr;
+        } else {
+            Vertices_ = Vertices_handle.product();
+        }
+    } else {
+        CosmicMuons1Leg_ = nullptr;
         Vertices_ = nullptr;
     }
     
@@ -473,6 +969,138 @@ void MuonAODAnalyzer::makeTree() {
     muon_RPClayerMask = std::make_unique<std::vector<unsigned int>>();
 
 
+
+    // Disp muon info pointers
+    dispMuon_size = std::make_unique<int32_t>(0);
+    dispMuon_e = std::make_unique<std::vector<float>>();
+    dispMuon_et = std::make_unique<std::vector<float>>();
+    dispMuon_pt = std::make_unique<std::vector<float>>();
+    dispMuon_eta = std::make_unique<std::vector<float>>();
+    dispMuon_phi = std::make_unique<std::vector<float>>();
+    dispMuon_dxy = std::make_unique<std::vector<float>>();
+    dispMuon_dz = std::make_unique<std::vector<float>>();
+    dispMuon_isLooseMuon = std::make_unique<std::vector<bool>>();
+    dispMuon_isMediumMuon = std::make_unique<std::vector<bool>>();
+    dispMuon_isTightMuon = std::make_unique<std::vector<bool>>();
+    dispMuon_iso = std::make_unique<std::vector<float>>();
+    dispMuon_hlt_isomu = std::make_unique<std::vector<short>>();
+    dispMuon_hlt_mu = std::make_unique<std::vector<short>>();
+    dispMuon_hlt_isoDeltaR = std::make_unique<std::vector<float>>();
+    dispMuon_hlt_deltaR = std::make_unique<std::vector<float>>();
+    dispMuon_passesSingleMuon = std::make_unique<std::vector<int>>();
+    dispMuon_charge = std::make_unique<std::vector<int>>();
+    dispMuon_etaSt1 = std::make_unique<std::vector<float>>();
+    dispMuon_phiSt1 = std::make_unique<std::vector<float>>();
+    dispMuon_etaSt2 = std::make_unique<std::vector<float>>();
+    dispMuon_phiSt2 = std::make_unique<std::vector<float>>();
+    dispMuon_vx = std::make_unique<std::vector<float>>();
+    dispMuon_vy = std::make_unique<std::vector<float>>();
+    dispMuon_vz = std::make_unique<std::vector<float>>();
+    dispMuon_px = std::make_unique<std::vector<float>>();
+    dispMuon_py = std::make_unique<std::vector<float>>();
+    dispMuon_pz = std::make_unique<std::vector<float>>();
+    dispMuon_isSAMuon = std::make_unique<std::vector<bool>>();
+    dispMuon_isGlobalMuon = std::make_unique<std::vector<bool>>();
+    dispMuon_isTrackerMuon = std::make_unique<std::vector<bool>>();
+    dispMuon_isPFMuon = std::make_unique<std::vector<bool>>();
+    dispMuon_nChambers = std::make_unique<std::vector<int>>();
+    dispMuon_nChambersCSCorDT = std::make_unique<std::vector<int>>();
+    dispMuon_nMatches = std::make_unique<std::vector<int>>();
+    dispMuon_nMatchedStations = std::make_unique<std::vector<int>>();
+    dispMuon_expectedNumberOfMatchedStations = std::make_unique<std::vector<unsigned int>>();
+    dispMuon_stationMask = std::make_unique<std::vector<unsigned int>>();
+    dispMuon_nMatchedRPCLayers = std::make_unique<std::vector<int>>();
+    dispMuon_RPClayerMask = std::make_unique<std::vector<unsigned int>>();
+
+
+
+    // Disp muon info pointers
+    cosmicMuon_size = std::make_unique<int32_t>(0);
+    cosmicMuon_e = std::make_unique<std::vector<float>>();
+    cosmicMuon_et = std::make_unique<std::vector<float>>();
+    cosmicMuon_pt = std::make_unique<std::vector<float>>();
+    cosmicMuon_eta = std::make_unique<std::vector<float>>();
+    cosmicMuon_phi = std::make_unique<std::vector<float>>();
+    cosmicMuon_dxy = std::make_unique<std::vector<float>>();
+    cosmicMuon_dz = std::make_unique<std::vector<float>>();
+    cosmicMuon_isLooseMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon_isMediumMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon_isTightMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon_iso = std::make_unique<std::vector<float>>();
+    cosmicMuon_hlt_isomu = std::make_unique<std::vector<short>>();
+    cosmicMuon_hlt_mu = std::make_unique<std::vector<short>>();
+    cosmicMuon_hlt_isoDeltaR = std::make_unique<std::vector<float>>();
+    cosmicMuon_hlt_deltaR = std::make_unique<std::vector<float>>();
+    cosmicMuon_passesSingleMuon = std::make_unique<std::vector<int>>();
+    cosmicMuon_charge = std::make_unique<std::vector<int>>();
+    cosmicMuon_etaSt1 = std::make_unique<std::vector<float>>();
+    cosmicMuon_phiSt1 = std::make_unique<std::vector<float>>();
+    cosmicMuon_etaSt2 = std::make_unique<std::vector<float>>();
+    cosmicMuon_phiSt2 = std::make_unique<std::vector<float>>();
+    cosmicMuon_vx = std::make_unique<std::vector<float>>();
+    cosmicMuon_vy = std::make_unique<std::vector<float>>();
+    cosmicMuon_vz = std::make_unique<std::vector<float>>();
+    cosmicMuon_px = std::make_unique<std::vector<float>>();
+    cosmicMuon_py = std::make_unique<std::vector<float>>();
+    cosmicMuon_pz = std::make_unique<std::vector<float>>();
+    cosmicMuon_isSAMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon_isGlobalMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon_isTrackerMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon_isPFMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon_nChambers = std::make_unique<std::vector<int>>();
+    cosmicMuon_nChambersCSCorDT = std::make_unique<std::vector<int>>();
+    cosmicMuon_nMatches = std::make_unique<std::vector<int>>();
+    cosmicMuon_nMatchedStations = std::make_unique<std::vector<int>>();
+    cosmicMuon_expectedNumberOfMatchedStations = std::make_unique<std::vector<unsigned int>>();
+    cosmicMuon_stationMask = std::make_unique<std::vector<unsigned int>>();
+    cosmicMuon_nMatchedRPCLayers = std::make_unique<std::vector<int>>();
+    cosmicMuon_RPClayerMask = std::make_unique<std::vector<unsigned int>>();
+
+
+
+    // Disp muon info pointers
+    cosmicMuon1Leg_size = std::make_unique<int32_t>(0);
+    cosmicMuon1Leg_e = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_et = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_pt = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_eta = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_phi = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_dxy = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_dz = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_isLooseMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon1Leg_isMediumMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon1Leg_isTightMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon1Leg_iso = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_hlt_isomu = std::make_unique<std::vector<short>>();
+    cosmicMuon1Leg_hlt_mu = std::make_unique<std::vector<short>>();
+    cosmicMuon1Leg_hlt_isoDeltaR = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_hlt_deltaR = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_passesSingleMuon = std::make_unique<std::vector<int>>();
+    cosmicMuon1Leg_charge = std::make_unique<std::vector<int>>();
+    cosmicMuon1Leg_etaSt1 = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_phiSt1 = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_etaSt2 = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_phiSt2 = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_vx = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_vy = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_vz = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_px = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_py = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_pz = std::make_unique<std::vector<float>>();
+    cosmicMuon1Leg_isSAMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon1Leg_isGlobalMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon1Leg_isTrackerMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon1Leg_isPFMuon = std::make_unique<std::vector<bool>>();
+    cosmicMuon1Leg_nChambers = std::make_unique<std::vector<int>>();
+    cosmicMuon1Leg_nChambersCSCorDT = std::make_unique<std::vector<int>>();
+    cosmicMuon1Leg_nMatches = std::make_unique<std::vector<int>>();
+    cosmicMuon1Leg_nMatchedStations = std::make_unique<std::vector<int>>();
+    cosmicMuon1Leg_expectedNumberOfMatchedStations = std::make_unique<std::vector<unsigned int>>();
+    cosmicMuon1Leg_stationMask = std::make_unique<std::vector<unsigned int>>();
+    cosmicMuon1Leg_nMatchedRPCLayers = std::make_unique<std::vector<int>>();
+    cosmicMuon1Leg_RPClayerMask = std::make_unique<std::vector<unsigned int>>();
+
+
     // Trigger flags pointers
     HLT_IsoMu24 = std::make_unique<bool>();
     HLT_Mu50_L1SingleMuShower = std::make_unique<bool>();
@@ -543,6 +1171,138 @@ void MuonAODAnalyzer::makeTree() {
         tree->Branch("muon_stationMask", &(*muon_stationMask));
         tree->Branch("muon_nMatchedRPCLayers", &(*muon_nMatchedRPCLayers));
         tree->Branch("muon_RPClayerMask", &(*muon_RPClayerMask));
+    }
+
+    // Disp muons
+    if (useDispMuons_) {
+        tree->Branch("dispMuon_size", &(*dispMuon_size));
+        tree->Branch("dispMuon_e", &(*dispMuon_e));
+        tree->Branch("dispMuon_et", &(*dispMuon_et));
+        tree->Branch("dispMuon_pt", &(*dispMuon_pt));
+        tree->Branch("dispMuon_eta", &(*dispMuon_eta));
+        tree->Branch("dispMuon_phi", &(*dispMuon_phi));
+        tree->Branch("dispMuon_dxy", &(*dispMuon_dxy));
+        tree->Branch("dispMuon_dz", &(*dispMuon_dz));
+        tree->Branch("dispMuon_isLooseMuon", &(*dispMuon_isLooseMuon));
+        tree->Branch("dispMuon_isMediumMuon", &(*dispMuon_isMediumMuon));
+        tree->Branch("dispMuon_isTightMuon", &(*dispMuon_isTightMuon));
+        tree->Branch("dispMuon_iso", &(*dispMuon_iso));
+        tree->Branch("dispMuon_hlt_isomu", &(*dispMuon_hlt_isomu));
+        tree->Branch("dispMuon_hlt_mu", &(*dispMuon_hlt_mu));
+        tree->Branch("dispMuon_hlt_isoDeltaR", &(*dispMuon_hlt_isoDeltaR));
+        tree->Branch("dispMuon_hlt_deltaR", &(*dispMuon_hlt_deltaR));
+        tree->Branch("dispMuon_passesSingleMuon", &(*dispMuon_passesSingleMuon));
+        tree->Branch("dispMuon_charge", &(*dispMuon_charge));
+        tree->Branch("dispMuon_etaSt1", &(*dispMuon_etaSt1));
+        tree->Branch("dispMuon_phiSt1", &(*dispMuon_phiSt1));
+        tree->Branch("dispMuon_etaSt2", &(*dispMuon_etaSt2));
+        tree->Branch("dispMuon_phiSt2", &(*dispMuon_phiSt2));
+        tree->Branch("dispMuon_vx", &(*dispMuon_vx));
+        tree->Branch("dispMuon_vy", &(*dispMuon_vy));
+        tree->Branch("dispMuon_vz", &(*dispMuon_vz));
+        tree->Branch("dispMuon_px", &(*dispMuon_px));
+        tree->Branch("dispMuon_py", &(*dispMuon_py));
+        tree->Branch("dispMuon_pz", &(*dispMuon_pz));
+        tree->Branch("dispMuon_isSAMuon", &(*dispMuon_isSAMuon));
+        tree->Branch("dispMuon_isTrackerMuon", &(*dispMuon_isTrackerMuon));
+        tree->Branch("dispMuon_isGlobalMuon", &(*dispMuon_isGlobalMuon));
+        tree->Branch("dispMuon_isPFMuon", &(*dispMuon_isPFMuon));
+        tree->Branch("dispMuon_nChambers", &(*dispMuon_nChambers));
+        tree->Branch("dispMuon_nChambersCSCorDT", &(*dispMuon_nChambersCSCorDT));
+        tree->Branch("dispMuon_nMatches", &(*dispMuon_nMatches));
+        tree->Branch("dispMuon_nMatchedStations", &(*dispMuon_nMatchedStations));
+        tree->Branch("dispMuon_expectedNumberOfMatchedStations", &(*dispMuon_expectedNumberOfMatchedStations));
+        tree->Branch("dispMuon_stationMask", &(*dispMuon_stationMask));
+        tree->Branch("dispMuon_nMatchedRPCLayers", &(*dispMuon_nMatchedRPCLayers));
+        tree->Branch("dispMuon_RPClayerMask", &(*dispMuon_RPClayerMask));
+    }
+
+    // Cosmic muons
+    if (useCosmicMuons_) {
+        tree->Branch("cosmicMuon_size", &(*cosmicMuon_size));
+        tree->Branch("cosmicMuon_e", &(*cosmicMuon_e));
+        tree->Branch("cosmicMuon_et", &(*cosmicMuon_et));
+        tree->Branch("cosmicMuon_pt", &(*cosmicMuon_pt));
+        tree->Branch("cosmicMuon_eta", &(*cosmicMuon_eta));
+        tree->Branch("cosmicMuon_phi", &(*cosmicMuon_phi));
+        tree->Branch("cosmicMuon_dxy", &(*cosmicMuon_dxy));
+        tree->Branch("cosmicMuon_dz", &(*cosmicMuon_dz));
+        tree->Branch("cosmicMuon_isLooseMuon", &(*cosmicMuon_isLooseMuon));
+        tree->Branch("cosmicMuon_isMediumMuon", &(*cosmicMuon_isMediumMuon));
+        tree->Branch("cosmicMuon_isTightMuon", &(*cosmicMuon_isTightMuon));
+        tree->Branch("cosmicMuon_iso", &(*cosmicMuon_iso));
+        tree->Branch("cosmicMuon_hlt_isomu", &(*cosmicMuon_hlt_isomu));
+        tree->Branch("cosmicMuon_hlt_mu", &(*cosmicMuon_hlt_mu));
+        tree->Branch("cosmicMuon_hlt_isoDeltaR", &(*cosmicMuon_hlt_isoDeltaR));
+        tree->Branch("cosmicMuon_hlt_deltaR", &(*cosmicMuon_hlt_deltaR));
+        tree->Branch("cosmicMuon_passesSingleMuon", &(*cosmicMuon_passesSingleMuon));
+        tree->Branch("cosmicMuon_charge", &(*cosmicMuon_charge));
+        tree->Branch("cosmicMuon_etaSt1", &(*cosmicMuon_etaSt1));
+        tree->Branch("cosmicMuon_phiSt1", &(*cosmicMuon_phiSt1));
+        tree->Branch("cosmicMuon_etaSt2", &(*cosmicMuon_etaSt2));
+        tree->Branch("cosmicMuon_phiSt2", &(*cosmicMuon_phiSt2));
+        tree->Branch("cosmicMuon_vx", &(*cosmicMuon_vx));
+        tree->Branch("cosmicMuon_vy", &(*cosmicMuon_vy));
+        tree->Branch("cosmicMuon_vz", &(*cosmicMuon_vz));
+        tree->Branch("cosmicMuon_px", &(*cosmicMuon_px));
+        tree->Branch("cosmicMuon_py", &(*cosmicMuon_py));
+        tree->Branch("cosmicMuon_pz", &(*cosmicMuon_pz));
+        tree->Branch("cosmicMuon_isSAMuon", &(*cosmicMuon_isSAMuon));
+        tree->Branch("cosmicMuon_isTrackerMuon", &(*cosmicMuon_isTrackerMuon));
+        tree->Branch("cosmicMuon_isGlobalMuon", &(*cosmicMuon_isGlobalMuon));
+        tree->Branch("cosmicMuon_isPFMuon", &(*cosmicMuon_isPFMuon));
+        tree->Branch("cosmicMuon_nChambers", &(*cosmicMuon_nChambers));
+        tree->Branch("cosmicMuon_nChambersCSCorDT", &(*cosmicMuon_nChambersCSCorDT));
+        tree->Branch("cosmicMuon_nMatches", &(*cosmicMuon_nMatches));
+        tree->Branch("cosmicMuon_nMatchedStations", &(*cosmicMuon_nMatchedStations));
+        tree->Branch("cosmicMuon_expectedNumberOfMatchedStations", &(*cosmicMuon_expectedNumberOfMatchedStations));
+        tree->Branch("cosmicMuon_stationMask", &(*cosmicMuon_stationMask));
+        tree->Branch("cosmicMuon_nMatchedRPCLayers", &(*cosmicMuon_nMatchedRPCLayers));
+        tree->Branch("cosmicMuon_RPClayerMask", &(*cosmicMuon_RPClayerMask));
+    }
+
+    // Disp muons
+    if (useDispMuons_) {
+        tree->Branch("cosmicMuon1Leg_size", &(*cosmicMuon1Leg_size));
+        tree->Branch("cosmicMuon1Leg_e", &(*cosmicMuon1Leg_e));
+        tree->Branch("cosmicMuon1Leg_et", &(*cosmicMuon1Leg_et));
+        tree->Branch("cosmicMuon1Leg_pt", &(*cosmicMuon1Leg_pt));
+        tree->Branch("cosmicMuon1Leg_eta", &(*cosmicMuon1Leg_eta));
+        tree->Branch("cosmicMuon1Leg_phi", &(*cosmicMuon1Leg_phi));
+        tree->Branch("cosmicMuon1Leg_dxy", &(*cosmicMuon1Leg_dxy));
+        tree->Branch("cosmicMuon1Leg_dz", &(*cosmicMuon1Leg_dz));
+        tree->Branch("cosmicMuon1Leg_isLooseMuon", &(*cosmicMuon1Leg_isLooseMuon));
+        tree->Branch("cosmicMuon1Leg_isMediumMuon", &(*cosmicMuon1Leg_isMediumMuon));
+        tree->Branch("cosmicMuon1Leg_isTightMuon", &(*cosmicMuon1Leg_isTightMuon));
+        tree->Branch("cosmicMuon1Leg_iso", &(*cosmicMuon1Leg_iso));
+        tree->Branch("cosmicMuon1Leg_hlt_isomu", &(*cosmicMuon1Leg_hlt_isomu));
+        tree->Branch("cosmicMuon1Leg_hlt_mu", &(*cosmicMuon1Leg_hlt_mu));
+        tree->Branch("cosmicMuon1Leg_hlt_isoDeltaR", &(*cosmicMuon1Leg_hlt_isoDeltaR));
+        tree->Branch("cosmicMuon1Leg_hlt_deltaR", &(*cosmicMuon1Leg_hlt_deltaR));
+        tree->Branch("cosmicMuon1Leg_passesSingleMuon", &(*cosmicMuon1Leg_passesSingleMuon));
+        tree->Branch("cosmicMuon1Leg_charge", &(*cosmicMuon1Leg_charge));
+        tree->Branch("cosmicMuon1Leg_etaSt1", &(*cosmicMuon1Leg_etaSt1));
+        tree->Branch("cosmicMuon1Leg_phiSt1", &(*cosmicMuon1Leg_phiSt1));
+        tree->Branch("cosmicMuon1Leg_etaSt2", &(*cosmicMuon1Leg_etaSt2));
+        tree->Branch("cosmicMuon1Leg_phiSt2", &(*cosmicMuon1Leg_phiSt2));
+        tree->Branch("cosmicMuon1Leg_vx", &(*cosmicMuon1Leg_vx));
+        tree->Branch("cosmicMuon1Leg_vy", &(*cosmicMuon1Leg_vy));
+        tree->Branch("cosmicMuon1Leg_vz", &(*cosmicMuon1Leg_vz));
+        tree->Branch("cosmicMuon1Leg_px", &(*cosmicMuon1Leg_px));
+        tree->Branch("cosmicMuon1Leg_py", &(*cosmicMuon1Leg_py));
+        tree->Branch("cosmicMuon1Leg_pz", &(*cosmicMuon1Leg_pz));
+        tree->Branch("cosmicMuon1Leg_isSAMuon", &(*cosmicMuon1Leg_isSAMuon));
+        tree->Branch("cosmicMuon1Leg_isTrackerMuon", &(*cosmicMuon1Leg_isTrackerMuon));
+        tree->Branch("cosmicMuon1Leg_isGlobalMuon", &(*cosmicMuon1Leg_isGlobalMuon));
+        tree->Branch("cosmicMuon1Leg_isPFMuon", &(*cosmicMuon1Leg_isPFMuon));
+        tree->Branch("cosmicMuon1Leg_nChambers", &(*cosmicMuon1Leg_nChambers));
+        tree->Branch("cosmicMuon1Leg_nChambersCSCorDT", &(*cosmicMuon1Leg_nChambersCSCorDT));
+        tree->Branch("cosmicMuon1Leg_nMatches", &(*cosmicMuon1Leg_nMatches));
+        tree->Branch("cosmicMuon1Leg_nMatchedStations", &(*cosmicMuon1Leg_nMatchedStations));
+        tree->Branch("cosmicMuon1Leg_expectedNumberOfMatchedStations", &(*cosmicMuon1Leg_expectedNumberOfMatchedStations));
+        tree->Branch("cosmicMuon1Leg_stationMask", &(*cosmicMuon1Leg_stationMask));
+        tree->Branch("cosmicMuon1Leg_nMatchedRPCLayers", &(*cosmicMuon1Leg_nMatchedRPCLayers));
+        tree->Branch("cosmicMuon1Leg_RPClayerMask", &(*cosmicMuon1Leg_RPClayerMask));
     }
 
     tree->Branch("HLT_IsoMu24", &(*HLT_IsoMu24));
@@ -619,6 +1379,138 @@ void MuonAODAnalyzer::fillTree() {
     l1mu_tfIdx.clear();
     l1mu_bx.clear();
     l1mu_size = 0;
+
+
+
+    // Clear Disp Muons
+    (*dispMuon_size) = 0;
+    dispMuon_e->clear();
+    dispMuon_et->clear();
+    dispMuon_pt->clear();
+    dispMuon_eta->clear();
+    dispMuon_phi->clear();
+    dispMuon_dxy->clear();
+    dispMuon_dz->clear();
+    dispMuon_isLooseMuon->clear();
+    dispMuon_isMediumMuon->clear();
+    dispMuon_isTightMuon->clear();
+    dispMuon_iso->clear();
+    dispMuon_hlt_isomu->clear();
+    dispMuon_hlt_mu->clear();
+    dispMuon_hlt_isoDeltaR->clear();
+    dispMuon_hlt_deltaR->clear();
+    dispMuon_passesSingleMuon->clear();
+    dispMuon_charge->clear();
+    dispMuon_etaSt1->clear();
+    dispMuon_phiSt1->clear();
+    dispMuon_etaSt2->clear();
+    dispMuon_phiSt2->clear();
+    dispMuon_isSAMuon->clear() ;
+    dispMuon_isTrackerMuon->clear();
+    dispMuon_isGlobalMuon->clear();
+    dispMuon_isPFMuon->clear();
+    dispMuon_nChambers->clear();
+    dispMuon_nChambersCSCorDT->clear();
+    dispMuon_nMatches->clear();
+    dispMuon_nMatchedStations->clear();
+    dispMuon_expectedNumberOfMatchedStations->clear();
+    dispMuon_stationMask->clear();
+    dispMuon_nMatchedRPCLayers->clear();
+    dispMuon_RPClayerMask->clear();
+    
+    dispMuon_vx->clear();
+    dispMuon_vy->clear();
+    dispMuon_vz->clear();
+    dispMuon_px->clear();
+    dispMuon_py->clear();
+    dispMuon_pz->clear();
+
+    // Clear Cosmic Muons
+    (*cosmicMuon_size) = 0;
+    cosmicMuon_e->clear();
+    cosmicMuon_et->clear();
+    cosmicMuon_pt->clear();
+    cosmicMuon_eta->clear();
+    cosmicMuon_phi->clear();
+    cosmicMuon_dxy->clear();
+    cosmicMuon_dz->clear();
+    cosmicMuon_isLooseMuon->clear();
+    cosmicMuon_isMediumMuon->clear();
+    cosmicMuon_isTightMuon->clear();
+    cosmicMuon_iso->clear();
+    cosmicMuon_hlt_isomu->clear();
+    cosmicMuon_hlt_mu->clear();
+    cosmicMuon_hlt_isoDeltaR->clear();
+    cosmicMuon_hlt_deltaR->clear();
+    cosmicMuon_passesSingleMuon->clear();
+    cosmicMuon_charge->clear();
+    cosmicMuon_etaSt1->clear();
+    cosmicMuon_phiSt1->clear();
+    cosmicMuon_etaSt2->clear();
+    cosmicMuon_phiSt2->clear();
+    cosmicMuon_isSAMuon->clear() ;
+    cosmicMuon_isTrackerMuon->clear();
+    cosmicMuon_isGlobalMuon->clear();
+    cosmicMuon_isPFMuon->clear();
+    cosmicMuon_nChambers->clear();
+    cosmicMuon_nChambersCSCorDT->clear();
+    cosmicMuon_nMatches->clear();
+    cosmicMuon_nMatchedStations->clear();
+    cosmicMuon_expectedNumberOfMatchedStations->clear();
+    cosmicMuon_stationMask->clear();
+    cosmicMuon_nMatchedRPCLayers->clear();
+    cosmicMuon_RPClayerMask->clear();
+    
+    cosmicMuon_vx->clear();
+    cosmicMuon_vy->clear();
+    cosmicMuon_vz->clear();
+    cosmicMuon_px->clear();
+    cosmicMuon_py->clear();
+    cosmicMuon_pz->clear();
+
+    // Clear Disp Muons
+    (*cosmicMuon1Leg_size) = 0;
+    cosmicMuon1Leg_e->clear();
+    cosmicMuon1Leg_et->clear();
+    cosmicMuon1Leg_pt->clear();
+    cosmicMuon1Leg_eta->clear();
+    cosmicMuon1Leg_phi->clear();
+    cosmicMuon1Leg_dxy->clear();
+    cosmicMuon1Leg_dz->clear();
+    cosmicMuon1Leg_isLooseMuon->clear();
+    cosmicMuon1Leg_isMediumMuon->clear();
+    cosmicMuon1Leg_isTightMuon->clear();
+    cosmicMuon1Leg_iso->clear();
+    cosmicMuon1Leg_hlt_isomu->clear();
+    cosmicMuon1Leg_hlt_mu->clear();
+    cosmicMuon1Leg_hlt_isoDeltaR->clear();
+    cosmicMuon1Leg_hlt_deltaR->clear();
+    cosmicMuon1Leg_passesSingleMuon->clear();
+    cosmicMuon1Leg_charge->clear();
+    cosmicMuon1Leg_etaSt1->clear();
+    cosmicMuon1Leg_phiSt1->clear();
+    cosmicMuon1Leg_etaSt2->clear();
+    cosmicMuon1Leg_phiSt2->clear();
+    cosmicMuon1Leg_isSAMuon->clear() ;
+    cosmicMuon1Leg_isTrackerMuon->clear();
+    cosmicMuon1Leg_isGlobalMuon->clear();
+    cosmicMuon1Leg_isPFMuon->clear();
+    cosmicMuon1Leg_nChambers->clear();
+    cosmicMuon1Leg_nChambersCSCorDT->clear();
+    cosmicMuon1Leg_nMatches->clear();
+    cosmicMuon1Leg_nMatchedStations->clear();
+    cosmicMuon1Leg_expectedNumberOfMatchedStations->clear();
+    cosmicMuon1Leg_stationMask->clear();
+    cosmicMuon1Leg_nMatchedRPCLayers->clear();
+    cosmicMuon1Leg_RPClayerMask->clear();
+    
+    cosmicMuon1Leg_vx->clear();
+    cosmicMuon1Leg_vy->clear();
+    cosmicMuon1Leg_vz->clear();
+    cosmicMuon1Leg_px->clear();
+    cosmicMuon1Leg_py->clear();
+    cosmicMuon1Leg_pz->clear();
+    
 
     // Clear flags
     (*HLT_IsoMu24) = false;

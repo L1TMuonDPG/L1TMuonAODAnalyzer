@@ -137,6 +137,10 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources, e
     edm::EDGetTokenT<reco::VertexCollection> VerticesToken_;
     edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> theBFieldToken_;
 
+    edm::EDGetTokenT<std::vector< reco::Muon> > dispMuonToken_;
+    edm::EDGetTokenT<std::vector< reco::Muon> > CosmicMuonToken_;
+    edm::EDGetTokenT<std::vector< reco::Muon> > CosmicMuon1LegToken_;
+
     double triggerMaxDeltaR_;
     bool triggerMatching_;
     std::string triggerProcessLabel_;
@@ -211,7 +215,21 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources, e
     std::unique_ptr<std::vector<int>>  muon_nMatchedRPCLayers;
     std::unique_ptr<std::vector<unsigned int>> muon_RPClayerMask;
 
-    //Displaced Muons
+    //L1 muon
+    vector <int> l1mu_qual;
+    vector <int> l1mu_charge;
+    vector <Float_t> l1mu_pt;
+    vector <Float_t> l1mu_pt_dxy;
+    vector <int> l1mu_dxy;
+    vector <Float_t> l1mu_eta;
+    vector <Float_t> l1mu_etaAtVtx;
+    vector <Float_t> l1mu_phi;
+    vector <Float_t> l1mu_phiAtVtx;
+    vector <int> l1mu_tfIdx;
+    vector <int> l1mu_bx;
+    int l1mu_size;
+
+        //Displaced Muons
     vector<Float_t>  dispMuon_eta;
     vector<Float_t>  dispMuon_etaAtSt1;
     vector<Float_t>  dispMuon_etaAtSt2;
@@ -333,20 +351,6 @@ class MuonAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources, e
     vector<int> cosmicMuon1Leg_nMatchedRPCLayers;
     vector<unsigned int> cosmicMuon1Leg_RPClayerMask;
     int cosmicMuon1Leg_size;
-
-    //L1 muon
-    vector <int> l1mu_qual;
-    vector <int> l1mu_charge;
-    vector <Float_t> l1mu_pt;
-    vector <Float_t> l1mu_pt_dxy;
-    vector <int> l1mu_dxy;
-    vector <Float_t> l1mu_eta;
-    vector <Float_t> l1mu_etaAtVtx;
-    vector <Float_t> l1mu_phi;
-    vector <Float_t> l1mu_phiAtVtx;
-    vector <int> l1mu_tfIdx;
-    vector <int> l1mu_bx;
-    int l1mu_size;
     
 
     // Trigger flags

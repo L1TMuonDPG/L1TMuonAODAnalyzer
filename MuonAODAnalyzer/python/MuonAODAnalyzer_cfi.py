@@ -10,16 +10,22 @@ MuonAODAnalyzer = cms.EDAnalyzer('MuonAODAnalyzer',
     RecoMuonTag      = cms.InputTag('muons'),
     Triggers         = cms.InputTag("TriggerResults::HLT"),
     l1GtSrc = cms.InputTag("gtStage2Digis"),
+    DispMuons=cms.InputTag("displacedMuons"),
+    CosmicMuons=cms.InputTag("muonsFromCosmics"), 
+    CosmicMuons1Leg=cms.InputTag("muonsFromCosmics1Leg"),
     
     # Flags to enable processing
     useRecoMuons     = cms.bool(True),
     useEventInfo     = cms.bool(True),
+    useDispMuons     = cms.bool(True),
+    useCosmicMuons     = cms.bool(True),
+    useCosmicMuons1Leg     = cms.bool(True),
 
     # Trigger Names for matching and flags
     isoTriggerNames = cms.vstring(
       "HLT_IsoMu24_v*",
       "HLT_IsoMu27_v*",
-      # "HLT_IsoMu30_v*",
+      "HLT_IsoMu30_v*",
     ),
     triggerNames = cms.vstring(
       "HLT_Mu50_v*",
